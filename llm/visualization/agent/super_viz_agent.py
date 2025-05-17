@@ -201,27 +201,158 @@ class SuperVisualizationAgent(AdvancedVisualizationAgent):
                 parameters["title"] = parameters.get("title", "Sample Pie Chart")
                 logger.info("Providing default data for pie chart visualization")
             
-            # Fix common expression format issues before processing
+            # Enhanced logic for handling function_3d expressions
             if "expression" in parameters:
-                # Replace caret with double asterisk for power operations
-                parameters["expression"] = parameters["expression"].replace("^", "**")
+                # Clean and preprocess the expression
+                expression = parameters["expression"]
                 
-                # Check for common prefixes in expressions that should be removed
+                # 1. Remove common prefixes like z= or f(x,y)=
+                if any(expression.startswith(prefix) for prefix in ["z=", "z =", "f(x,y)=", "f(x,y) =", "f(x, y)=", "f(x, y) ="]):
+                    expression = expression.split("=", 1)[1].strip()
+                
+                # 2. Replace caret power notation with double asterisk
+                expression = expression.replace("^", "**")
+                
+                # 3. Handle special cases for different visualization types
                 if visualization_type == "function_3d":
-                    # Remove z= or f(x,y)= prefixes
-                    expression = parameters["expression"]
-                    if expression.startswith(("z=", "z =", "f(x,y)=", "f(x,y) =", "f(x, y)=", "f(x, y) =")):
-                        # Extract just the expression part
-                        parameters["expression"] = expression.split("=")[1].strip()
-                        logger.debug(f"Fixed 3D expression prefix: {parameters['expression']}")
+                    # Handle negative exponents in 3D functions
+                    import re
+                    
+                    # Check for implicit equations (where z appears on both sides or with powers)
+                    implicit_eq_pattern = r'z\s*\^?\s*2|z\s*\*\*\s*2'
+                    is_implicit_equation = re.search(implicit_eq_pattern, expression, re.IGNORECASE)
+                    
+                    if is_implicit_equation:
+                        logger.info(f"Detected implicit equation: {expression}")
                         
+                        # Check if there's an equals sign in the expression
+                        if '=' in expression:
+                            # Split into left and right sides of the equation
+                            left_side, right_side = expression.split('=', 1)
+                            left_side = left_side.strip()
+                            right_side = right_side.strip()
+                            
+                            # Rearrange to standard form: left_side - right_side = 0
+                            implicit_form = f"({left_side}) - ({right_side})"
+                            
+                            # Try several approaches to handle implicit equations
+                            
+                            # APPROACH 1: Quadric surfaces (hyperboloids, ellipsoids, etc.)
+                            # Look for z^2 term to identify quadric surfaces
+                            if re.search(r'z\s*\*\*\s*2|z\s*\^\s*2', left_side + right_side, re.IGNORECASE):
+                                logger.info("Detected quadric surface. Attempting to solve for z...")
+                                
+                                # Move all terms to left side: implicit_form = 0
+                                # Replace ^ with ** for exponents
+                                implicit_form = implicit_form.replace('^', '**')
+                                
+                                # Extract z^2 coefficient (usually 1 or -1)
+                                z_coef = 1.0
+                                z_squared_match = re.search(r'([+-]?\s*\d*\.?\d*)\s*\*?\s*z\s*\*\*\s*2', implicit_form)
+                                if z_squared_match:
+                                    z_coef_str = z_squared_match.group(1).strip()
+                                    if z_coef_str in ['+', '-']:
+                                        z_coef = 1.0 if z_coef_str == '+' else -1.0
+                                    elif z_coef_str:  # If not empty
+                                        z_coef = float(z_coef_str)
+                                
+                                # Remove the z^2 term
+                                implicit_form = re.sub(r'[+-]?\s*\d*\.?\d*\s*\*?\s*z\s*\*\*\s*2', '', implicit_form)
+                                
+                                # Simplify and isolate: z^2 = -implicit_form / z_coef
+                                if z_coef != 0:
+                                    z_squared_expr = f"-(({implicit_form})) / {z_coef}"
+                                    
+                                    # Formula for z: z = ±sqrt(expression) if expression >= 0
+                                    expression = f"np.sqrt(np.maximum({z_squared_expr}, 0)) * np.sign({z_squared_expr})"
+                                    logger.info(f"Reformulated quadric surface to: z = {expression}")
+                                else:
+                                    logger.warning("Cannot solve implicit equation: z^2 coefficient is zero")
+                        
+                        # If we reach here without a solution, try a generic approach
+                        if '=' in expression:
+                            logger.warning("Using generic approach for implicit equation")
+                            left_side, right_side = expression.split('=', 1)
+                            left_side = left_side.strip()
+                            right_side = right_side.strip()
+                            
+                            # Just isolate the z^2 term and take square root
+                            if 'z^2' in left_side or 'z**2' in left_side:
+                                # Move everything else to the right side
+                                left_side_terms = re.split(r'([+-])', left_side)
+                                z_squared_term = ''
+                                other_terms = []
+                                
+                                for i, term in enumerate(left_side_terms):
+                                    if 'z^2' in term or 'z**2' in term:
+                                        z_squared_term = term
+                                        sign = left_side_terms[i-1] if i > 0 and left_side_terms[i-1] in ['+', '-'] else '+'
+                                        z_coefficient = 1.0
+                                        # Extract coefficient if any
+                                        coef_match = re.search(r'(\d+(?:\.\d+)?)\s*\*?\s*z', term)
+                                        if coef_match:
+                                            z_coefficient = float(coef_match.group(1))
+                                        if sign == '-':
+                                            z_coefficient = -z_coefficient
+                                    else:
+                                        other_terms.append(term)
+                                
+                                # Combine other terms
+                                other_side = ''.join(other_terms)
+                                # If not empty, negate and add to right side
+                                if other_side.strip():
+                                    if other_side.startswith('+'):
+                                        other_side = other_side[1:]
+                                    right_side = f"{right_side} - ({other_side})"
+                                
+                                # Now z^2 = right_side / z_coefficient
+                                expr = f"({right_side}) / {z_coefficient}"
+                                
+                                # Replace ^ with **
+                                expr = expr.replace('^', '**')
+                                
+                                # Final expression: z = ±sqrt(expr)
+                                expression = f"np.sqrt(abs({expr})) * np.sign({expr})"
+                                logger.info(f"Final expression after solving for z: {expression}")
+                    
+                    # Fix expressions with negative exponents like (x^2+y^2)^-2
+                    expression = re.sub(r'(\w+)\*\*-(\d+)', r'\1**(-\2)', expression)
+                    expression = re.sub(r'\(([^)]+)\)\*\*-(\d+)', r'(\1)**(-\2)', expression)
+                    
+                    # Fix expressions with complex fractions
+                    if '/' in expression:
+                        # Ensure proper division operations
+                        expression = expression.replace('1/', '1.0/')
+                    
+                    # Handle special trig and other functions
+                    if any(func in expression for func in ['sin', 'cos', 'tan', 'log', 'exp', 'sqrt']):
+                        # Add numpy prefix to mathematical functions if not already present
+                        for func in ['sin', 'cos', 'tan', 'exp', 'log', 'sqrt']:
+                            if func + '(' in expression and 'np.' + func + '(' not in expression:
+                                expression = expression.replace(func + '(', 'np.' + func + '(')
+                    
+                    # Check for balanced parentheses
+                    open_count = expression.count('(')
+                    close_count = expression.count(')')
+                    if open_count > close_count:
+                        expression += ')' * (open_count - close_count)
+                        logger.info(f"Fixed unbalanced parentheses in expression: {expression}")
+                    
+                    # Update the parameter
+                    parameters["expression"] = expression
+                    logger.debug(f"Preprocessed 3D expression: {expression}")
+                    
                 elif visualization_type == "function_2d":
                     # Remove y= or f(x)= prefixes
-                    expression = parameters["expression"]
-                    if expression.startswith(("y=", "y =", "f(x)=", "f(x) =")):
-                        # Extract just the expression part
-                        parameters["expression"] = expression.split("=")[1].strip()
-                        logger.debug(f"Fixed 2D expression prefix: {parameters['expression']}")
+                    expression = re.sub(r'^y\s*=\s*', '', expression)
+                    expression = re.sub(r'^f\s*\(\s*x\s*\)\s*=\s*', '', expression)
+                    
+                    # Fix negative exponents
+                    expression = re.sub(r'(\w+)\*\*-(\d+)', r'\1**(-\2)', expression)
+                    
+                    # Update the parameter
+                    parameters["expression"] = expression
+                    logger.debug(f"Preprocessed 2D expression: {expression}")
             
             # Call the appropriate visualization method
             try:

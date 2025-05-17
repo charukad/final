@@ -485,8 +485,31 @@ def clean_json_string(json_str: str) -> str:
     # Replace single quotes with double quotes
     json_str = json_str.replace("'", '"')
     
-    # Fix power notation (^ to **)
-    json_str = re.sub(r'(\w+)\^(\d+)', r'\1**\2', json_str)
+    # 1. IMPROVED: Fix power notation (^ to **) - enhanced regex to handle more complex cases
+    # Handle negative exponents and expressions with parentheses
+    json_str = re.sub(r'(\w+|\))\s*\^\s*-?\s*(\d+)', r'\1**\2', json_str)
+    json_str = re.sub(r'\(([^)]+)\)\s*\^\s*-?\s*(\d+)', r'(\1)**\2', json_str)
+    
+    # 2. NEW: Special handling for complex fractions in 3D functions
+    if '"visualization_type": "function_3d"' in json_str:
+        # Handle expressions like z = 1/(x^2+y^2)
+        json_str = re.sub(r'"expression"\s*:\s*"(?:[zZ]\s*=\s*)?(\d+)\/\(([^)]+)\)"', 
+                          r'"expression": "\1/(\2)"', json_str)
+        
+        # Handle expressions with negative exponents like (x^2+y^2)^-2
+        json_str = re.sub(r'"expression"\s*:\s*"(?:[zZ]\s*=\s*)?(\([^)]+\))\s*\^\s*-\s*(\d+)"', 
+                          r'"expression": "\1**-\2"', json_str)
+        
+        # Fix incomplete expressions with missing closing parentheses
+        expr_match = re.search(r'"expression"\s*:\s*"([^"]+)"', json_str)
+        if expr_match:
+            expr = expr_match.group(1)
+            # Count parentheses and fix if unbalanced
+            open_parens = expr.count('(')
+            close_parens = expr.count(')')
+            if open_parens > close_parens:
+                fixed_expr = expr + ')' * (open_parens - close_parens)
+                json_str = json_str.replace(f'"expression": "{expr}"', f'"expression": "{fixed_expr}"')
     
     # Handle pi and mathematical constants without using backreferences
     json_str = json_str.replace(' pi ', ' 3.14159 ')
@@ -499,6 +522,39 @@ def clean_json_string(json_str: str) -> str:
     # Replace any remaining instances of pi
     json_str = json_str.replace('"pi"', '"3.14159"')
     json_str = json_str.replace('"π"', '"3.14159"')
+    
+    # 3. NEW: Handle trigonometric functions 
+    trig_funcs = ['sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan']
+    for func in trig_funcs:
+        # Replace function(x) with np.function(x)
+        json_str = re.sub(r'(\W|^)(' + func + r')\(', r'\1np.\2(', json_str)
+    
+    # 4. NEW: Handle logarithmic functions
+    log_funcs = ['log', 'ln', 'log10']
+    for func in log_funcs:
+        # Replace log(x) with np.log(x)
+        json_str = re.sub(r'(\W|^)(' + func + r')\(', r'\1np.\2(', json_str)
+    
+    # 5. NEW: Handle square roots and other math functions
+    if 'sqrt' in json_str:
+        json_str = re.sub(r'(\W|^)(sqrt)\(', r'\1np.\2(', json_str)
+    
+    # 6. NEW: Handle expressions like z = sin(sqrt(x^2 + y^2))
+    complex_expr_match = re.search(r'"expression"\s*:\s*"(?:[zZ]\s*=\s*)?([^"]+)"', json_str)
+    if complex_expr_match:
+        complex_expr = complex_expr_match.group(1)
+        # Replace ^ with ** if not already done
+        if '^' in complex_expr:
+            fixed_expr = re.sub(r'(\w+|\))\s*\^\s*(\d+)', r'\1**\2', complex_expr)
+            json_str = json_str.replace(f'"expression": "{complex_expr}"', f'"expression": "{fixed_expr}"')
+    
+    # 7. NEW: Handle implicit equations like z^2-x^2-y^2=-1
+    implicit_eq_match = re.search(r'"expression"\s*:\s*"([^"]*[zZ]\s*(?:\^|\*\*)\s*2[^"]*=.+)"', json_str)
+    if implicit_eq_match:
+        implicit_expr = implicit_eq_match.group(1)
+        # We'll keep the expression as is, but flag it as an implicit equation
+        json_str = json_str.replace(f'"expression": "{implicit_expr}"', 
+                                   f'"expression": "{implicit_expr}", "is_implicit": true')
     
     # Fix missing quotes around property names
     json_str = re.sub(r'([{,])\s*(\w+)\s*:', r'\1"\2":', json_str)
