@@ -9,8 +9,11 @@ import logging
 import json
 import uuid
 import re
+import os
+import glob
 from typing import Dict, Any, List, Optional, Union
 from fastapi import APIRouter, HTTPException, Body
+from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 from datetime import datetime
 import numpy as np
@@ -38,6 +41,13 @@ class NLPVisualizationResponse(BaseModel):
     base64_image: Optional[str] = None
     error: Optional[str] = None
     llm_analysis: Optional[Dict[str, Any]] = None
+
+# Track the latest visualization for retrieval after timeouts
+latest_visualization = {
+    "file_path": None,
+    "timestamp": None,
+    "visualization_type": None
+}
 
 # Endpoints
 @router.post("", response_model=NLPVisualizationResponse)
@@ -104,6 +114,21 @@ async def generate_visualization(request: NLPVisualizationRequest):
             logger.info(f"Visualization successful: {extracted_data.get('visualization_type')}")
             if "file_path" in visualization_result:
                 logger.info(f"Visualization saved to: {visualization_result['file_path']}")
+                
+                # Update latest visualization for recovery after timeouts
+                global latest_visualization
+                latest_visualization = {
+                    "file_path": visualization_result['file_path'],
+                    "timestamp": datetime.now().isoformat(),
+                    "visualization_type": extracted_data.get('visualization_type')
+                }
+                
+                # Save latest visualization info to a JSON file for recovery
+                try:
+                    with open(os.path.join("visualizations", "latest.json"), "w") as f:
+                        json.dump(latest_visualization, f)
+                except Exception as e:
+                    logger.error(f"Error saving latest visualization info: {e}")
         else:
             logger.error(f"Visualization failed: {visualization_result.get('error', 'Unknown error')}")
         
@@ -125,6 +150,102 @@ async def generate_visualization(request: NLPVisualizationRequest):
         return NLPVisualizationResponse(
             success=False,
             error=f"Error processing NLP visualization: {str(e)}"
+        )
+
+@router.get("/latest")
+async def get_latest_visualization():
+    """
+    Get the latest successfully generated visualization.
+    This is useful for recovery after timeouts.
+    
+    Returns:
+        Latest visualization information
+    """
+    try:
+        # Check if we have a latest visualization
+        if not latest_visualization["file_path"]:
+            # Try to read from the JSON file if in-memory cache is empty
+            try:
+                if os.path.exists(os.path.join("visualizations", "latest.json")):
+                    with open(os.path.join("visualizations", "latest.json"), "r") as f:
+                        file_data = json.load(f)
+                        if file_data and "file_path" in file_data:
+                            latest_visualization.update(file_data)
+            except Exception as read_error:
+                logger.error(f"Error reading latest visualization info: {read_error}")
+                
+            # If still no data, try to find the most recent file
+            if not latest_visualization["file_path"]:
+                try:
+                    viz_files = glob.glob("visualizations/*.png")
+                    if viz_files:
+                        # Sort by modification time, newest first
+                        newest_file = max(viz_files, key=os.path.getmtime)
+                        latest_visualization["file_path"] = newest_file
+                        latest_visualization["timestamp"] = datetime.fromtimestamp(
+                            os.path.getmtime(newest_file)
+                        ).isoformat()
+                except Exception as glob_error:
+                    logger.error(f"Error finding latest visualization file: {glob_error}")
+        
+        # If we still don't have a file, return 404
+        if not latest_visualization["file_path"]:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": "No visualizations found"}
+            )
+            
+        # Check if the file exists
+        file_path = latest_visualization["file_path"]
+        if not os.path.exists(file_path):
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": f"File not found: {file_path}"}
+            )
+            
+        # Return the file info
+        return JSONResponse(
+            content={
+                "success": True,
+                "file_path": file_path,
+                "timestamp": latest_visualization["timestamp"],
+                "visualization_type": latest_visualization.get("visualization_type")
+            }
+        )
+        
+    except Exception as e:
+        logger.exception(f"Error retrieving latest visualization: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"Error retrieving latest visualization: {str(e)}"}
+        )
+
+@router.get("/files/{filename:path}")
+async def get_visualization_file(filename: str):
+    """
+    Get a specific visualization file.
+    
+    Args:
+        filename: The filename to retrieve
+        
+    Returns:
+        The visualization file
+    """
+    try:
+        file_path = os.path.join("visualizations", filename)
+        if not os.path.exists(file_path):
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": f"File not found: {filename}"}
+            )
+            
+        return FileResponse(file_path)
+        
+    except Exception as e:
+        logger.exception(f"Error retrieving visualization file: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"Error retrieving visualization file: {str(e)}"}
         )
 
 @router.post("/debug", response_model=Dict[str, Any])

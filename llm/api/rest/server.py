@@ -9,6 +9,7 @@ import os
 import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from .routes import math, multimodal
@@ -56,6 +57,12 @@ app.include_router(multimodal.router)
 app.include_router(websocket_router)
 app.include_router(visualization_router)
 app.include_router(nlp_visualization_router)
+
+# Set up static file serving
+# First, ensure the visualizations directory exists
+os.makedirs("visualizations", exist_ok=True)
+# Mount the visualizations directory
+app.mount("/static/visualizations", StaticFiles(directory="visualizations"), name="visualizations")
 
 @app.get("/")
 async def root():
