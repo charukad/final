@@ -1,0 +1,140 @@
+@import "./mixins.css";
+
+/* Base HTML and Body Styles */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Roboto", "Segoe UI", "Arial", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #333;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Prevent route transition flashing */
+.app-container {
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+}
+
+/* On smaller screens, reduce the base font size */
+@media (--sm-down) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Container with responsive padding */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 30px;
+  box-sizing: border-box;
+}
+
+@media (--sm-down) {
+  .container {
+    padding: 0 15px;
+  }
+}
+
+/* Responsive typography */
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.75rem;
+}
+
+h4 {
+  font-size: 1.5rem;
+}
+
+h5 {
+  font-size: 1.25rem;
+}
+
+h6 {
+  font-size: 1rem;
+}
+
+@media (--sm-down) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+  }
+
+  h4 {
+    font-size: 1.25rem;
+  }
+
+  h5,
+  h6 {
+    font-size: 1rem;
+  }
+}
+
+/* Responsive utilities */
+.hide-on-mobile {
+  @media (--sm-down) {
+    display: none !important;
+  }
+}
+
+.show-on-mobile {
+  display: none !important;
+  @media (--sm-down) {
+    display: block !important;
+  }
+}
+
+.hide-on-tablet {
+  @media (--md-down) {
+    display: none !important;
+  }
+}
+
+.show-on-tablet {
+  display: none !important;
+  @media (--md-down) {
+    display: block !important;
+  }
+}
+
+/* Touch-friendly elements */
+button,
+.button,
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  @media (--sm-down) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Improve form elements on mobile */
+input,
+select,
+textarea {
+  @media (--sm-down) {
+    font-size: 16px; /* Prevents iOS zooming on focus */
+  }
+}

@@ -1,0 +1,450 @@
+/* Search Page Layout */
+.search-page {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .search-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .search-header h1 {
+    margin: 0;
+    font-size: 24px;
+  }
+  
+  .back-button {
+    padding: 8px 16px;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  
+  .back-button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  /* Search Results Header */
+  .search-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .results-info {
+    display: flex;
+    align-items: center;
+  }
+  
+  .results-count {
+    font-weight: 500;
+    margin-right: 20px;
+  }
+  
+  .sort-controls {
+    display: flex;
+    align-items: center;
+  }
+  
+  .sort-controls label {
+    margin-right: 8px;
+  }
+  
+  .sort-controls select {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  /* Search Results Container */
+  .search-results {
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  .search-results.grid .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+  }
+  
+  /* Loading and Error States */
+  .search-loading, .search-error, .no-results {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    text-align: center;
+  }
+  
+  .loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #4CAF50;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .spinner-small {
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #4CAF50;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+  }
+  
+  .retry-button {
+    margin-top: 15px;
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .no-results-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+  }
+  
+  /* Search Filters */
+  .search-filters {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .toggle-filters-button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  
+  .toggle-icon {
+    margin-left: 8px;
+    font-size: 10px;
+  }
+  
+  .clear-filters-button {
+    background: none;
+    border: none;
+    color: #4CAF50;
+    cursor: pointer;
+  }
+  
+  .filters-content {
+    padding: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+  }
+  
+  .filter-section {
+    margin-bottom: 15px;
+  }
+  
+  .filter-title {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #666;
+  }
+  
+  .tags-grid, .folders-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .filter-tag, .filter-folder {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .filter-tag:hover, .filter-folder:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .filter-tag.selected, .filter-folder.selected {
+    background-color: #e3f2fd;
+    border: 1px solid #90caf9;
+  }
+  
+  .tag-color, .folder-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  
+  /* Date Range Picker */
+  .date-range-picker {
+    margin-bottom: 15px;
+  }
+  
+  .date-inputs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .date-input-group {
+    flex: 1;
+  }
+  
+  .date-input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .date-input-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .date-presets {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .preset-button {
+    padding: 6px 10px;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  
+  .preset-button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .preset-button.clear {
+    color: #F44336;
+  }
+  
+  /* Other Filters */
+  .filter-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  
+  .checkbox-icon {
+    width: 18px;
+    height: 18px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    background-color: white;
+  }
+  
+  .filter-checkbox.checked .checkbox-icon {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+  }
+  
+  /* Pagination */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 30px;
+    margin-bottom: 20px;
+  }
+  
+  .pagination-button {
+    padding: 8px 16px;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .pagination-button:hover:not(:disabled) {
+    background-color: #e0e0e0;
+  }
+  
+  .page-numbers {
+    display: flex;
+    margin: 0 15px;
+  }
+  
+  .page-number {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 50%;
+    margin: 0 3px;
+  }
+  
+  .page-number:hover:not(:disabled):not(.active) {
+    background-color: #f0f0f0;
+  }
+  
+  .page-number.active {
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  .page-number.ellipsis {
+    cursor: default;
+  }
+  
+  /* SearchBar component styles */
+  .search-bar-container {
+    position: relative;
+    flex: 1;
+    max-width: 500px;
+  }
+  
+  .search-form {
+    display: flex;
+  }
+  
+  .search-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    font-size: 14px;
+  }
+  
+  .search-button {
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+  }
+  
+  .search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-top: 5px;
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .suggestions-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    color: #666;
+  }
+  
+  .suggestion-group {
+    padding: 10px 0;
+  }
+  
+  .suggestion-group:not(:last-child) {
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .suggestion-group-title {
+    margin: 0;
+    padding: 0 15px 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #999;
+  }
+  
+  .suggestion-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .suggestion-item {
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  
+  .suggestion-item:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .suggestion-icon {
+    margin-right: 10px;
+    font-size: 16px;
+  }
+  
+  .suggestion-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .no-suggestions {
+    padding: 15px;
+    text-align: center;
+    color: #666;
+  }

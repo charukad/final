@@ -1,0 +1,95 @@
+/* CSS Reset to ensure consistent styling across browsers */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Ensure body and html take full space */
+html, body {
+  height: 100%;
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Reset button styles */
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* Reset link styles */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Reset list styles */
+ul, ol {
+  list-style: none;
+}
+
+/* Ensure all inputs have consistent styling */
+input, textarea, select {
+  font: inherit;
+}
+
+/* Base styling for app */
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+/* Base styling for main containers */
+.dashboard, .editor-page {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Force sidebar visibility */
+.sidebar,
+.editor-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: #f5f5f5 !important;
+  border-right: 1px solid #e0e0e0 !important;
+  width: 250px !important;
+  padding: 15px !important;
+  overflow-y: auto !important;
+  z-index: 10 !important;
+}
+
+/* Force toolbar visibility */
+.top-navigation,
+.editor-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 10px 20px !important;
+  background-color: white !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  z-index: 10 !important;
+}
+
+/* Force button styling */
+.editor-header button,
+.top-navigation button {
+  padding: 8px 16px !important;
+  background-color: #f0f0f0 !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  margin-left: 5px !important;
+  font-size: 14px !important;
+}
+
+/* Ensure content area is visible */
+.dashboard-content,
+.editor-content,
+.editor-main {
+  flex: 1 !important;
+  overflow: auto !important;
+  background-color: white !important;
+} 

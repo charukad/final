@@ -1,0 +1,455 @@
+/* CRITICAL LTR FIX - Add at top of file */
+:root {
+  direction: ltr !important;
+}
+
+/* Force direction on the entire document */
+html, body {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Force all inputs to LTR */
+input, textarea {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: plaintext !important;
+}
+
+/* Override for contenteditable regions specifically */
+[contenteditable] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: plaintext !important;
+}
+
+/* Text Editor Container */
+.text-editor-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+}
+
+/* SUPER CRITICAL: Make UI components not editable */
+.editor-toolbar,
+.toolbar-button,
+.toolbar-divider,
+.toolbar-group,
+.toolbar-dropdown,
+.dropdown-panel {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-user-modify: read-only !important;
+  -moz-user-modify: read-only !important;
+  -ms-user-modify: read-only !important;
+  user-modify: read-only !important;
+  -webkit-touch-callout: none !important;
+  pointer-events: auto !important;
+  cursor: default !important;
+}
+
+/* Make buttons clickable but not editable */
+.toolbar-button {
+  cursor: pointer !important;
+  pointer-events: all !important;
+}
+
+/* Editor Wrapper */
+.editor-wrapper {
+  display: flex;
+  position: relative;
+  flex: 1;
+  overflow: auto;
+}
+
+/* CRITICAL FIX: Global reset for all elements inside the editor */
+.text-editor-container *,
+.text-editor-container *::before,
+.text-editor-container *::after {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate !important;
+}
+
+/* CRITICAL FIX: Added protection for editor content area */
+.editor-content {
+  flex: 1 !important;
+  padding: 20px !important;
+  min-height: 300px !important;
+  outline: none !important;
+  line-height: 1.6 !important;
+  font-size: 16px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+  color: #333 !important;
+  white-space: pre-wrap !important; /* Preserve whitespace but allow wrapping */
+  word-wrap: break-word !important; /* Break words that are too long */
+  overflow-wrap: break-word !important;
+  caret-color: black !important; /* Ensure cursor is visible */
+  position: relative !important; /* Important for cursor positioning */
+  direction: ltr !important; /* Ensure left-to-right text direction - CRITICAL FIX */
+  text-align: left !important; /* Ensure left alignment - CRITICAL FIX */
+  cursor: text !important; /* Show text cursor - CRITICAL FIX */
+  unicode-bidi: isolate-override !important; /* Additional control over bidirectional text */
+  writing-mode: horizontal-tb !important; /* Ensure horizontal writing mode */
+  -webkit-text-orientation: mixed !important;
+  text-orientation: mixed !important;
+  -webkit-user-modify: read-write !important;
+  -webkit-user-select: text !important;
+  -moz-user-modify: read-write !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  background-color: white !important;
+  visibility: visible !important;
+  display: block !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Additional protection for the editable area */
+[contenteditable=true] {
+  -webkit-user-modify: read-write !important;
+  -moz-user-modify: read-write !important;
+  user-modify: read-write !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+  outline: none !important;
+}
+
+/* Force non-editability on toolbar even with contenteditable */
+.editor-toolbar [contenteditable=true],
+.toolbar-button [contenteditable=true],
+.toolbar-divider [contenteditable=true],
+.toolbar-group [contenteditable=true] {
+  -webkit-user-modify: read-only !important;
+  -moz-user-modify: read-only !important;
+  user-modify: read-only !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  user-select: none !important;
+  cursor: default !important;
+  contenteditable: false !important;
+}
+
+/* Force element directionality for new elements created in the editor */
+.editor-content p,
+.editor-content div,
+.editor-content span,
+.editor-content strong,
+.editor-content em,
+.editor-content u,
+.editor-content s,
+.editor-content a,
+.editor-content h1,
+.editor-content h2,
+.editor-content h3,
+.editor-content h4,
+.editor-content h5,
+.editor-content h6,
+.editor-content ul,
+.editor-content ol,
+.editor-content li,
+.editor-content blockquote,
+.editor-content code,
+.editor-content pre {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate !important;
+  user-select: auto !important;
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  margin: 0 0 10px 0 !important; /* Add minimum spacing for better editing */
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* Fix for cursor positioning issues */
+.editor-content * {
+  direction: inherit !important; /* Ensure all child elements inherit direction */
+  text-align: inherit !important; /* Ensure all child elements inherit alignment */
+  white-space: inherit !important; /* Ensure whitespace handling is consistent */
+}
+
+/* Additional specificity for contenteditable elements */
+[contenteditable=true] {
+  caret-color: black !important;
+  direction: ltr !important;
+  text-align: left !important;
+  cursor: text !important;
+  unicode-bidi: isolate-override !important;
+}
+
+/* Firefox specific fix */
+@-moz-document url-prefix() {
+  .editor-content {
+    text-align: left !important;
+    direction: ltr !important;
+    -moz-user-modify: read-write !important;
+  }
+
+  .editor-toolbar,
+  .toolbar-button,
+  .toolbar-group,
+  .toolbar-divider {
+    -moz-user-select: none !important;
+    -moz-user-modify: read-only !important;
+  }
+}
+
+/* WebKit specific fix */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .editor-content {
+    text-align: left !important;
+    direction: ltr !important;
+    -webkit-user-modify: read-write !important;
+  }
+
+  .editor-toolbar,
+  .toolbar-button,
+  .toolbar-group,
+  .toolbar-divider {
+    -webkit-user-select: none !important;
+    -webkit-user-modify: read-only !important;
+  }
+}
+
+/* Read-only mode */
+.editor-content.read-only {
+  background-color: #f9f9f9 !important;
+  cursor: default !important;
+  -webkit-user-modify: read-only !important;
+  -moz-user-modify: read-only !important;
+}
+
+/* Editor margin for comments */
+.editor-margin {
+  width: 20px;
+  background-color: #f5f5f5;
+  position: relative;
+  border-right: 1px solid #e0e0e0;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+}
+
+/* Comment indicators */
+.comment-indicator {
+  position: absolute;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  transform: translateY(-50%);
+  z-index: 5;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+}
+
+.indicator-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ffa726;
+  border: 1px solid #e65100;
+}
+
+.comment-indicator.resolved .indicator-dot {
+  background-color: #81c784;
+  border-color: #2e7d32;
+}
+
+/* Comment form */
+.comment-form {
+  position: absolute;
+  right: 20px;
+  top: 80px;
+  width: 250px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  z-index: 100;
+}
+
+.comment-form textarea {
+  width: 100%;
+  height: 80px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  resize: none;
+}
+
+.comment-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.comment-form-actions button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.comment-form-actions button:first-child {
+  background-color: transparent;
+  border: 1px solid #ddd;
+}
+
+.comment-form-actions button:last-child {
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+}
+
+/* Remote user selections */
+.remote-selections-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.remote-selection {
+  position: absolute;
+  height: 1.2em;
+  min-width: 2px;
+  opacity: 0.5;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.user-label {
+  position: absolute;
+  right: 6px;
+  top: 0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: white;
+  transform: translateY(-100%);
+  white-space: nowrap;
+}
+
+/* Fix for specific edge cases */
+@supports (-webkit-hyphens: none) {
+  .editor-content br {
+    display: block;
+    content: "";
+    margin-top: 0.5em;
+  }
+}
+
+/* Enhanced cursor visibility for WebKit browsers */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .editor-content {
+    -webkit-user-modify: read-write !important;
+    -webkit-user-select: text !important;
+  }
+}
+
+/* Specific text styling */
+.editor-content h1 {
+  font-size: 2em;
+  margin-bottom: 0.5em;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.editor-content h2 {
+  font-size: 1.5em;
+  margin-bottom: 0.5em;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.editor-content h3 {
+  font-size: 1.2em;
+  margin-bottom: 0.5em;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.editor-content p {
+  margin-bottom: 1em;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.editor-content ul, 
+.editor-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.editor-content code {
+  font-family: monospace;
+  background-color: #f5f5f5;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.editor-content pre {
+  background-color: #f5f5f5;
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: monospace;
+  margin-bottom: 1em;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Toolbar styles */
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  gap: 5px;
+}
+
+.toolbar-button {
+  padding: 5px 10px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.toolbar-button:hover {
+  background-color: #f0f0f0;
+}
+
+.toolbar-button.active {
+  background-color: #e6f2ff;
+  border-color: #1a73e8;
+} 

@@ -1,0 +1,287 @@
+/* PlainTextEditor Styles */
+.editor-container {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Editor Toolbar */
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  gap: 2px;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.toolbar-button:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  border-color: #c0c0c0;
+}
+
+.toolbar-button:active:not(:disabled) {
+  background-color: #e0e0e0;
+  transform: translateY(1px);
+}
+
+.toolbar-button.active {
+  background-color: #e6f7ff;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.toolbar-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Special styling for media buttons */
+.toolbar-button[title="Insert Image"],
+.toolbar-button[title="Insert Video"] {
+  font-size: 16px;
+}
+
+.toolbar-button[title="Remove Link"] {
+  font-size: 12px;
+}
+
+/* Special styling for new feature buttons */
+.toolbar-button[title^="Heading"] {
+  font-weight: bold;
+}
+
+.toolbar-button[title="Blockquote"] {
+  font-family: 'Georgia', serif;
+  font-size: 18px;
+}
+
+.toolbar-button[title="Insert Table"],
+.toolbar-button[title="Insert Special Character"] {
+  font-size: 16px;
+}
+
+.toolbar-button[title="Insert Code Block"],
+.toolbar-button[title="Insert Inline Code"] {
+  font-family: 'Courier New', monospace;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #e0e0e0;
+  margin: 0 4px;
+}
+
+.toolbar-select {
+  height: 32px;
+  min-width: 100px;
+  padding: 0 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 14px;
+  outline: none;
+}
+
+.toolbar-select:hover:not(:disabled) {
+  border-color: #c0c0c0;
+}
+
+.toolbar-select:focus {
+  border-color: #1890ff;
+}
+
+.toolbar-color-picker {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  outline: none;
+}
+
+.toolbar-color-picker:hover:not(:disabled) {
+  border-color: #c0c0c0;
+}
+
+/* Special Characters Panel */
+.special-chars-panel {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8px;
+  background-color: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.special-char-button {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.15s ease;
+}
+
+.special-char-button:hover:not(:disabled) {
+  background-color: #e6f7ff;
+  border-color: #1890ff;
+}
+
+.special-char-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Styles for media upload placeholders */
+.upload-placeholder {
+  display: inline-block;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  border: 1px dashed #ccc;
+  color: #666;
+  font-size: 14px;
+}
+
+.editor-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-textarea {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  padding: 20px;
+  font-size: 16px;
+  line-height: 1.6;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  color: #333;
+  background-color: white;
+  display: block;
+  box-sizing: border-box;
+  direction: ltr;
+  text-align: left;
+  overflow: auto;
+  min-height: 300px;
+  max-width: 100%;
+}
+
+/* Style for images in the editor */
+.editor-textarea img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px 0;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Style for video elements */
+.editor-textarea video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px 0;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .editor-toolbar {
+    padding: 4px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  
+  .toolbar-button {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .toolbar-select {
+    min-width: 80px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .toolbar-color-picker {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .special-chars-panel {
+    max-height: 100px;
+    padding: 4px;
+  }
+  
+  .special-char-button {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+  }
+  
+  .editor-textarea {
+    padding: 15px;
+    font-size: 15px;
+  }
+} 

@@ -1,0 +1,284 @@
+/* Export and Import Button Styles */
+.dashboard-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-icon {
+  margin-right: 8px;
+}
+
+.selection-count {
+  display: inline-block;
+  min-width: 18px;
+  height: 18px;
+  background-color: #4caf50;
+  color: white;
+  border-radius: 9px;
+  font-size: 12px;
+  text-align: center;
+  margin-left: 8px;
+  padding: 0 4px;
+}
+
+.clear-selection {
+  color: #f44336;
+}
+
+/* Export Modal Styles */
+.export-info {
+  margin-bottom: 20px;
+}
+
+.export-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+.export-button:hover:not(:disabled) {
+  background-color: #43a047;
+}
+
+/* Import Modal Styles */
+.modal-tabs {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-button.active {
+  border-bottom-color: #4caf50;
+  font-weight: 500;
+}
+
+.file-drop-area {
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+  padding: 30px;
+  text-align: center;
+  margin-bottom: 20px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+.file-drop-area.has-file {
+  border-color: #4caf50;
+  background-color: #e8f5e9;
+}
+
+.drop-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+  color: #999;
+}
+
+.file-input {
+  display: none;
+}
+
+.browse-button {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.selected-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.file-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.file-name {
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.file-size {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.remove-file-button {
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.supported-formats {
+  margin-top: 20px;
+}
+
+.supported-formats h4 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.supported-formats ul {
+  padding-left: 20px;
+  color: #666;
+}
+
+.textarea-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.paste-button {
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.import-success {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.success-icon {
+  width: 60px;
+  height: 60px;
+  background-color: #4caf50;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 20px;
+}
+
+.view-note-button,
+.import-another-button {
+  padding: 8px 16px;
+  margin: 10px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.view-note-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+.import-another-button {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.import-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+/* Note Selection Styles */
+.selection-toggle {
+  padding: 6px 12px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.selection-toggle.active {
+  background-color: #e3f2fd;
+  border-color: #90caf9;
+}
+
+.select-all {
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.note-card.selectable {
+  position: relative;
+  padding-left: 30px;
+}
+
+.selection-indicator {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.note-card.selected .selection-indicator {
+  background-color: #4caf50;
+  border-color: #4caf50;
+}
+
+.selection-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.note-row.selected .selection-checkbox {
+  background-color: #4caf50;
+  border-color: #4caf50;
+}
