@@ -7,6 +7,7 @@ import MobileEditorHeader from "../components/editor/MobileEditorHeader";
 import AIAssistantPanel from "../components/ai-assistant/AIAssistantPanel";
 import NoteFlowGPT from "../components/ai-assistant/NoteFlowGPT";
 import CollaborationPanel from "../components/collaboration/CollaborationPanel";
+import MathAgent from "../components/math/MathAgent";
 import NoSocketModal from "../components/common/NoSocketModal";
 import { getNoteById, createNote, updateNote } from "../services/noteService";
 import socketService from "../services/socketService";
@@ -29,6 +30,7 @@ const EditorPage = () => {
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [showNoteFlowGPT, setShowNoteFlowGPT] = useState(false);
   const [showCollaborationPanel, setShowCollaborationPanel] = useState(false);
+  const [showMathAgent, setShowMathAgent] = useState(false);
   const [activeUsers, setActiveUsers] = useState([]);
   const [COMMENTS, setComments] = useState([]);
   const [error, setError] = useState(null);
@@ -430,6 +432,14 @@ const EditorPage = () => {
     if (showNoteFlowGPT) setShowNoteFlowGPT(false);
   };
 
+  // Toggle math agent panel
+  const toggleMathAgent = () => {
+    setShowMathAgent((prev) => !prev);
+    if (showAIPanel) setShowAIPanel(false);
+    if (showNoteFlowGPT) setShowNoteFlowGPT(false);
+    if (showCollaborationPanel) setShowCollaborationPanel(false);
+  };
+
   // Manual save with visual feedback
   const handleManualSave = () => {
     if (!note) return;
@@ -662,9 +672,11 @@ const EditorPage = () => {
               toggleAIPanel={toggleAIPanel}
               toggleNoteFlowGPT={toggleNoteFlowGPT}
               toggleCollaborationPanel={toggleCollaborationPanel}
+              toggleMathAgent={toggleMathAgent}
               showAIPanel={showAIPanel}
               showNoteFlowGPT={showNoteFlowGPT}
               showCollaborationPanel={showCollaborationPanel}
+              showMathAgent={showMathAgent}
               onSave={handleManualSave}
               saving={saving}
               lastSaved={lastSaved}
@@ -748,6 +760,15 @@ const EditorPage = () => {
             onInviteCollaborator={handleInviteCollaborator}
             onRemoveCollaborator={handleRemoveCollaborator}
             onClose={toggleCollaborationPanel}
+          />
+        )}
+        
+        {showMathAgent && (
+          <MathAgent
+            currentNote={note}
+            isOpen={showMathAgent}
+            onClose={toggleMathAgent}
+            onAddToNote={addToNote}
           />
         )}
         

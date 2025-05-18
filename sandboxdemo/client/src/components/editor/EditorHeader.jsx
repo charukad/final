@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ExportModal from "../export/ExportModal";
 import StyleChecker from "../common/StyleChecker";
+import MathAgent from "../math/MathAgent";
 
 const EditorHeader = ({
   title = "Untitled Note",
@@ -16,6 +17,8 @@ const EditorHeader = ({
   showCollaborationPanel,
   toggleNoteFlowGPT,
   showNoteFlowGPT,
+  toggleMathAgent,
+  showMathAgent,
   activeUsers = [],
 }) => {
   const navigate = useNavigate();
@@ -197,6 +200,15 @@ const EditorHeader = ({
             <span className="saved" style={{color: '#666'}}>Last saved: {formatLastSaved()}</span>
           )}
         </div>
+        
+        <button 
+          className={`toolbar-button math-agent-toggle ${showMathAgent ? 'active' : ''}`} 
+          onClick={toggleMathAgent}
+          title="Toggle Math Agent"
+          style={{...buttonStyle, backgroundColor: showMathAgent ? '#e0e0e0' : '#f0f0f0'}}
+        >
+          Math Agent
+        </button>
 
         <button 
           className={`toolbar-button ai-toggle ${showAIPanel ? 'active' : ''}`} 

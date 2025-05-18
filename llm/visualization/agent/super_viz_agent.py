@@ -464,6 +464,9 @@ class SuperVisualizationAgent(AdvancedVisualizationAgent):
     def _plot_boxplot(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Plot a boxplot for one or more datasets."""
         try:
+            # Import needed modules
+            import logging
+            
             # Extract parameters
             data = parameters.get("data")
             if data is None:
@@ -480,6 +483,38 @@ class SuperVisualizationAgent(AdvancedVisualizationAgent):
             show_points = parameters.get("show_points", True)
             notch = parameters.get("notch", False)
             
+            # Preprocess data for compatibility with labels
+            # Check if data is a single dataset or multiple datasets
+            is_single_dataset = not isinstance(data[0], (list, tuple, np.ndarray))
+            if is_single_dataset:
+                # Convert single list to a list with one dataset
+                data = [data]
+            
+            # Check if data is a list containing a single dataset
+            if len(data) == 1 and isinstance(data[0], (list, tuple, np.ndarray)) and labels and len(labels) > 1:
+                # We have one dataset but multiple labels - likely a mismatch
+                logging.info(f"Data format mismatch detected: 1 dataset but {len(labels)} labels")
+                
+                if len(data[0]) == len(labels):
+                    # Option 1: Transform [[a,b,c,d,e]] with labels [A,B,C,D,E] into [[a],[b],[c],[d],[e]]
+                    logging.info("Transforming single dataset into multiple datasets to match labels")
+                    transformed_data = [[item] for item in data[0]]
+                    data = transformed_data
+                else:
+                    # Option 2: Keep the dataset but use only one label or generate a new label
+                    logging.info("Using a single label for the dataset")
+                    if labels:
+                        labels = [labels[0] if isinstance(labels, list) else labels]
+            elif labels and len(data) != len(labels):
+                # We have a different number of datasets and labels
+                logging.info(f"Data-label mismatch: {len(data)} datasets but {len(labels)} labels")
+                if len(data) > len(labels):
+                    # Generate additional labels if needed
+                    labels = labels + [f"Series {i+1}" for i in range(len(labels), len(data))]
+                else:
+                    # Truncate labels to match data
+                    labels = labels[:len(data)]
+            
             # Determine output path
             save_path = None
             if parameters.get("save", True):
@@ -490,10 +525,6 @@ class SuperVisualizationAgent(AdvancedVisualizationAgent):
             
             # Create the plot
             fig, ax = plt.subplots(figsize=figsize)
-            
-            # Convert single list to a list of lists if needed
-            if isinstance(data[0], (int, float, np.number)):
-                data = [data]
             
             # Create the boxplot
             boxplot = ax.boxplot(data, 
