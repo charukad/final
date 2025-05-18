@@ -1,0 +1,2 @@
+2025-05-18 06:27:19,240 [INFO] Starting Mathematical Multimodal LLM System on 0.0.0.0:8000
+2025-05-18 06:27:19,241 [INFO] Using LMStudio at http://127.0.0.1:1234 with model mistral-7b-instruct-v0.3

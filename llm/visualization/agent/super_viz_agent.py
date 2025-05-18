@@ -1,10 +1,14 @@
 import os
 import json
+import logging
+import time
+import uuid
+import datetime
+import re  # Add the missing import for regular expressions
+import traceback
 from typing import Dict, Any, Optional, List, Union, Tuple
 import numpy as np
 import sympy as sp
-import uuid
-from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import seaborn as sns
@@ -68,7 +72,6 @@ class SuperVisualizationAgent(AdvancedVisualizationAgent):
         missing_deps = []
         
         # Import logging early to ensure we can log issues
-        import logging
         logger = logging.getLogger(__name__)
         
         for dep, message in dependencies.items():
@@ -325,6 +328,50 @@ class SuperVisualizationAgent(AdvancedVisualizationAgent):
                         # Ensure proper division operations
                         expression = expression.replace('1/', '1.0/')
                     
+                    # Handle expressions that use NumPy functions
+                    if 'np.' in expression:
+                        # For expressions with NumPy functions, we need to create a custom lambda function
+                        # instead of using SymPy parsing
+                        logger.info(f"Expression uses NumPy functions: {expression}")
+                        
+                        try:
+                            # We'll keep the expression string for later direct numpy evaluation
+                            # Store the original expression 
+                            parameters["is_numpy_expression"] = True
+                            parameters["numpy_expression"] = expression
+                            
+                            # Create a simpler SymPy expression for metadata
+                            # This is just for display purposes
+                            simple_expr = "x**2 + y**2"  # Default fallback
+                            
+                            # Extract the actual expression from the complex numpy formula if possible
+                            if "x**2" in expression or "y**2" in expression:
+                                # Try to find the core expression pattern
+                                expr_match = re.search(r'\(\(([^)]+)\)\)', expression)
+                                if expr_match:
+                                    simple_expr = expr_match.group(1)
+                                else:
+                                    # Look for common patterns in 3D expressions
+                                    if "x**2 + y**2" in expression:
+                                        simple_expr = "x**2 + y**2"
+                                    elif "x**2 - y**2" in expression:
+                                        simple_expr = "x**2 - y**2"
+                            
+                            # Create a simple SymPy expression for metadata only
+                            x_sym, y_sym = sp.symbols('x y')
+                            try:
+                                # Parse as a simple symbolic expression just for metadata
+                                parameters["expression"] = simple_expr
+                                parameters["display_expression"] = simple_expr
+                            except Exception as e:
+                                logger.warning(f"Could not parse simple expression: {e}")
+                                # Use a placeholder expression
+                                parameters["expression"] = "x**2 + y**2"
+                                parameters["display_expression"] = "Custom 3D Surface"
+                            
+                        except Exception as numpy_expr_error:
+                            logger.error(f"Error handling NumPy expression: {numpy_expr_error}")
+                    
                     # Handle special trig and other functions
                     if any(func in expression for func in ['sin', 'cos', 'tan', 'log', 'exp', 'sqrt']):
                         # Add numpy prefix to mathematical functions if not already present
@@ -358,7 +405,20 @@ class SuperVisualizationAgent(AdvancedVisualizationAgent):
             # Call the appropriate visualization method
             try:
                 logger.info(f"Generating visualization: {visualization_type}")
-                visualization_result = self.supported_types[visualization_type](parameters)
+                
+                # Handle special case for 3D functions with NumPy expressions
+                if visualization_type == "function_3d" and parameters.get("is_numpy_expression", False):
+                    # Create a copy of parameters to avoid modifying the original
+                    plot_params = parameters.copy()
+                    
+                    # Log the NumPy expression being used
+                    logger.info(f"Using NumPy expression for 3D visualization: {plot_params.get('numpy_expression')}")
+                    
+                    # Call the visualization function with the parameters
+                    visualization_result = self.supported_types[visualization_type](plot_params)
+                else:
+                    # Standard call for other visualization types
+                    visualization_result = self.supported_types[visualization_type](parameters)
                 
                 if visualization_result.get("success", False):
                     logger.info(f"Visualization created successfully: {visualization_type}")

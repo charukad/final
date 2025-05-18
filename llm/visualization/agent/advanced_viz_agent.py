@@ -9,6 +9,7 @@ from datetime import datetime
 # Local imports
 from visualization.agent.viz_agent import VisualizationAgent
 from math_processing.computation.sympy_wrapper import SymbolicProcessor
+from visualization.plotting.plot_3d import plot_function_3d
 
 class AdvancedVisualizationAgent(VisualizationAgent):
     """
@@ -35,7 +36,8 @@ class AdvancedVisualizationAgent(VisualizationAgent):
             "critical_points": self._plot_function_with_critical_points,
             "integral": self._plot_function_with_integral,
             "taylor_series": self._plot_function_with_taylor,
-            "vector_field": self._plot_vector_field
+            "vector_field": self._plot_vector_field,
+            "function_3d": self._plot_function_3d
         }
         
         # Update supported types
@@ -610,6 +612,64 @@ class AdvancedVisualizationAgent(VisualizationAgent):
         except Exception as e:
             return {"success": False, "error": f"Error in vector field visualization: {str(e)}"}
     
+    def _plot_function_3d(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Plot a 3D function visualization."""
+        try:
+            # Extract parameters
+            expression = parameters.get("expression")
+            if expression is None:
+                return {"success": False, "error": "Missing required parameter: expression"}
+                
+            # Handle optional parameters
+            x_range = parameters.get("x_range", (-5, 5))
+            y_range = parameters.get("y_range", (-5, 5))
+            num_points = parameters.get("num_points", 100)
+            title = parameters.get("title", "3D Function")
+            x_label = parameters.get("x_label", "x")
+            y_label = parameters.get("y_label", "y")
+            z_label = parameters.get("z_label", "z")
+            figsize = parameters.get("figsize", (10, 8))
+            cmap = parameters.get("cmap", "viridis")
+            view_angle = parameters.get("view_angle", (30, 30))
+            
+            # Determine output path
+            filename = parameters.get("filename")
+            if not filename:
+                filename = f"function_3d_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.{self.default_format}"
+            save_path = os.path.join(self.storage_dir, filename)
+            
+            # Additional parameters for NumPy expressions
+            is_numpy_expression = parameters.get("is_numpy_expression", False)
+            numpy_expression = parameters.get("numpy_expression")
+            display_expression = parameters.get("display_expression")
+            
+            # Create kwargs dictionary for additional parameters
+            extra_kwargs = {}
+            if is_numpy_expression:
+                extra_kwargs["is_numpy_expression"] = is_numpy_expression
+                extra_kwargs["numpy_expression"] = numpy_expression
+                extra_kwargs["display_expression"] = display_expression
+            
+            # Call the 3D function plotter
+            return plot_function_3d(
+                expression,
+                x_range=x_range,
+                y_range=y_range,
+                num_points=num_points,
+                title=title,
+                x_label=x_label,
+                y_label=y_label,
+                z_label=z_label,
+                figsize=figsize,
+                cmap=cmap,
+                view_angle=view_angle,
+                save_path=save_path,
+                **extra_kwargs
+            )
+            
+        except Exception as e:
+            return {"success": False, "error": f"Error in 3D function visualization: {str(e)}"}
+    
     def get_capabilities(self) -> Dict[str, Any]:
         """
         Return the agent's capabilities.
@@ -620,6 +680,6 @@ class AdvancedVisualizationAgent(VisualizationAgent):
         capabilities = super().get_capabilities()
         capabilities["agent_type"] = "advanced_visualization"
         capabilities["supported_types"] = list(self.supported_types.keys())
-        capabilities["advanced_features"] = ["derivatives", "integrals", "taylor_series", "critical_points", "vector_fields"]
+        capabilities["advanced_features"] = ["derivatives", "integrals", "taylor_series", "critical_points", "vector_fields", "3D_functions"]
         
         return capabilities

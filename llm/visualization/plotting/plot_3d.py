@@ -23,7 +23,8 @@ def plot_function_3d(
     figsize: Tuple[int, int] = (10, 8),
     cmap: str = 'viridis',
     view_angle: Tuple[float, float] = (30, 30),
-    save_path: Optional[str] = None
+    save_path: Optional[str] = None,
+    **kwargs
 ) -> Dict[str, Any]:
     """
     Generate a 3D surface plot of a mathematical function f(x,y).
@@ -41,6 +42,7 @@ def plot_function_3d(
         cmap: Colormap for the surface
         view_angle: Initial viewing angle (elevation, azimuth)
         save_path: Path to save the figure (if None, will be returned as base64)
+        kwargs: Additional parameters, including is_numpy_expression and numpy_expression
         
     Returns:
         Dictionary with plot information, including base64 encoded image or path
@@ -54,184 +56,261 @@ def plot_function_3d(
     y = np.linspace(y_range[0], y_range[1], num_points)
     X, Y = np.meshgrid(x, y)
     
-    # Convert string expression to SymPy if needed
-    if isinstance(function_expr, str):
+    # Check if we're using a direct NumPy expression
+    is_numpy_expression = kwargs.get('is_numpy_expression', False)
+    numpy_expression = kwargs.get('numpy_expression', None)
+    display_expression = kwargs.get('display_expression', None)
+    
+    if is_numpy_expression and numpy_expression:
         try:
-            # Pre-process the expression to handle common issues
-            function_expr = preprocess_expression(function_expr)
+            # Define a function that evaluates the numpy expression directly
+            def f(x, y):
+                # Create a safe evaluation namespace
+                eval_namespace = {
+                    'x': x,
+                    'y': y,
+                    'np': np,
+                    'sin': np.sin,
+                    'cos': np.cos,
+                    'tan': np.tan,
+                    'exp': np.exp,
+                    'log': np.log,
+                    'sqrt': np.sqrt,
+                    'abs': np.abs,
+                    'sign': np.sign,
+                    'maximum': np.maximum,
+                    'minimum': np.minimum
+                }
+                
+                # Define a cleanup function for the expression
+                def clean_expr(expr):
+                    # Replace '^' with '**' for exponentiation
+                    expr = expr.replace('^', '**')
+                    # Fix negative exponents
+                    expr = re.sub(r'([a-zA-Z0-9]+)\*\*-(\d+)', r'\1**(-\2)', expr)
+                    return expr
+                
+                # Clean the expression
+                clean_numpy_expr = clean_expr(numpy_expression)
+                
+                try:
+                    # Try to evaluate the expression in the safe namespace
+                    return eval(clean_numpy_expr, {'__builtins__': {}}, eval_namespace)
+                except Exception as eval_error:
+                    logging.error(f"Error evaluating numpy expression: {eval_error}")
+                    # Return NaN for failed evaluation
+                    return np.full_like(x, np.nan)
             
-            # Setup symbols
-            x_sym, y_sym = sp.symbols('x y')
+            # Compute Z values using our function
+            Z = f(X, Y)
             
-            # Parse the expression
+            # If display_expression is provided, use it for title
+            if display_expression:
+                function_expr = display_expression
+            else:
+                function_expr = numpy_expression
+                
+        except Exception as np_error:
+            return {
+                "success": False,
+                "error": f"Failed to evaluate numpy expression: {str(np_error)}"
+            }
+    else:
+        # Convert string expression to SymPy if needed
+        if isinstance(function_expr, str):
             try:
-                # Import sympy functions for use in parsing
-                from sympy import sqrt, Abs, sign, sin, cos, tan, exp, log
+                # Pre-process the expression to handle common issues
+                function_expr = preprocess_expression(function_expr)
                 
-                # Import the globals from sympy to enable parsing of sqrt, abs, etc.
-                # This will ensure that sympy functions are used during parsing
-                function_expr = sp.sympify(function_expr, locals={'sqrt': sqrt, 'Abs': Abs, 'sign': sign,
-                                                                 'sin': sin, 'cos': cos, 'tan': tan,
-                                                                 'exp': exp, 'log': log})
-            except Exception as parse_error:
-                # If direct parsing fails, try additional preprocessing
-                logging.warning(f"Initial expression parsing failed: {parse_error}")
+                # Setup symbols
+                x_sym, y_sym = sp.symbols('x y')
                 
-                # Try alternative parsing approaches
-                # 1. Try replacing ^ with ** if not already done
-                if '^' in function_expr:
-                    function_expr = function_expr.replace('^', '**')
+                # Parse the expression
+                try:
+                    # Import sympy functions for use in parsing
+                    from sympy import sqrt, Abs, sign, sin, cos, tan, exp, log
                     
-                # 2. Try wrapping negative exponents in parentheses
-                function_expr = re.sub(r'(\w+)\*\*-(\d+)', r'(\1)**(-\2)', function_expr)
-                
-                # 3. Try again with improved expression
-                logging.info(f"Retrying with preprocessed expression: {function_expr}")
-            function_expr = sp.sympify(function_expr)
-                
+                    # Import the globals from sympy to enable parsing of sqrt, abs, etc.
+                    # This will ensure that sympy functions are used during parsing
+                    function_expr = sp.sympify(function_expr, locals={'sqrt': sqrt, 'Abs': Abs, 'sign': sign,
+                                                                     'sin': sin, 'cos': cos, 'tan': tan,
+                                                                     'exp': exp, 'log': log})
+                except Exception as parse_error:
+                    # If direct parsing fails, try additional preprocessing
+                    logging.warning(f"Initial expression parsing failed: {parse_error}")
+                    
+                    # Try alternative parsing approaches
+                    # 1. Try replacing ^ with ** if not already done
+                    if '^' in function_expr:
+                        function_expr = function_expr.replace('^', '**')
+                        
+                    # 2. Try wrapping negative exponents in parentheses
+                    function_expr = re.sub(r'(\w+)\*\*-(\d+)', r'(\1)**(-\2)', function_expr)
+                    
+                    # 3. Try again with improved expression
+                    logging.info(f"Retrying with preprocessed expression: {function_expr}")
+                function_expr = sp.sympify(function_expr)
+                    
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Failed to parse expression: {str(e)}"
+                }
+        
+        # Convert SymPy expression to NumPy function
+        x_sym, y_sym = sp.symbols('x y')
+        
+        try:
+            f = sp.lambdify((x_sym, y_sym), function_expr, "numpy")
+            
+            # Use try/except to handle domain errors and create a safe evaluation
+            def safe_eval(X, Y):
+                try:
+                    result = f(X, Y)
+                    # Replace infinities with NaN
+                    return np.where(np.isfinite(result), result, np.nan)
+                except Exception as eval_error:
+                    logging.warning(f"Evaluation error: {eval_error}")
+                    # Create a masked array filled with NaNs where the function is undefined
+                    return np.full_like(X, np.nan)
+            
+            Z = safe_eval(X, Y)
         except Exception as e:
             return {
                 "success": False,
-                "error": f"Failed to parse expression: {str(e)}"
+                "error": f"Failed to convert expression to function: {str(e)}"
             }
     
-    # Convert SymPy expression to NumPy function
-    x_sym, y_sym = sp.symbols('x y')
-    
-    try:
-        f = sp.lambdify((x_sym, y_sym), function_expr, "numpy")
+    # Check for infinities or NaN values
+    mask = np.isfinite(Z)
+    if not np.any(mask):
+        # If all values are non-finite, try to provide a fallback
+        logging.warning("No finite values in the specified range. Adjusting domain...")
         
-        # Use try/except to handle domain errors and create a safe evaluation
-        def safe_eval(X, Y):
-            try:
-                result = f(X, Y)
-                # Replace infinities with NaN
-                return np.where(np.isfinite(result), result, np.nan)
-            except Exception as eval_error:
-                logging.warning(f"Evaluation error: {eval_error}")
-                # Create a masked array filled with NaNs where the function is undefined
-                return np.full_like(X, np.nan)
+        # Initialize adjusted variables first to avoid reference before assignment
+        X_adj, Y_adj = X, Y
         
-        Z = safe_eval(X, Y)
-        
-        # Check for infinities or NaN values
-        mask = np.isfinite(Z)
-        if not np.any(mask):
-            # If all values are non-finite, try to provide a fallback
-            logging.warning("No finite values in the specified range. Adjusting domain...")
+        # Try with a smaller domain to see if we can get valid results
+        try:
+            x_adjusted = np.linspace(x_range[0]/2, x_range[1]/2, num_points)
+            y_adjusted = np.linspace(y_range[0]/2, y_range[1]/2, num_points)
+            X_adj, Y_adj = np.meshgrid(x_adjusted, y_adjusted)
             
-            # Initialize adjusted variables first to avoid reference before assignment
-            X_adj, Y_adj = X, Y
+            if is_numpy_expression and numpy_expression:
+                Z = f(X_adj, Y_adj)
+            else:
+                Z = safe_eval(X_adj, Y_adj)
+                
+            mask = np.isfinite(Z)
             
-            # Try with a smaller domain to see if we can get valid results
-            try:
-                x_adjusted = np.linspace(x_range[0]/2, x_range[1]/2, num_points)
-                y_adjusted = np.linspace(y_range[0]/2, y_range[1]/2, num_points)
+            # If we still don't have finite values, try another adjustment
+            if not np.any(mask):
+                logging.warning("Still no finite values. Trying another adjustment...")
+                x_adjusted = np.linspace(-2, 2, num_points)
+                y_adjusted = np.linspace(-2, 2, num_points)
                 X_adj, Y_adj = np.meshgrid(x_adjusted, y_adjusted)
                 
-                Z = safe_eval(X_adj, Y_adj)
-                mask = np.isfinite(Z)
-                
-                # If we still don't have finite values, try another adjustment
-                if not np.any(mask):
-                    logging.warning("Still no finite values. Trying another adjustment...")
-                    x_adjusted = np.linspace(-2, 2, num_points)
-                    y_adjusted = np.linspace(-2, 2, num_points)
-                    X_adj, Y_adj = np.meshgrid(x_adjusted, y_adjusted)
-                    
+                if is_numpy_expression and numpy_expression:
+                    Z = f(X_adj, Y_adj)
+                else:
                     Z = safe_eval(X_adj, Y_adj)
-                    mask = np.isfinite(Z)
-            except Exception as adjust_error:
-                logging.error(f"Error during domain adjustment: {adjust_error}")
-                # Fallback to original grid on error
-                X_adj, Y_adj = X, Y
-                Z = safe_eval(X, Y)
+                    
                 mask = np.isfinite(Z)
+        except Exception as adjust_error:
+            logging.error(f"Error during domain adjustment: {adjust_error}")
+            # Fallback to original grid on error
+            X_adj, Y_adj = X, Y
             
-            # Update our grid with the adjusted version if we have finite values
-            if np.any(mask):
-                X, Y = X_adj, Y_adj
-                logging.info("Successfully found finite values with adjusted domain.")
+            if is_numpy_expression and numpy_expression:
+                Z = f(X, Y)
+            else:
+                Z = safe_eval(X, Y)
+                
+            mask = np.isfinite(Z)
         
-        if not np.any(mask):
-            return {
-                "success": False,
-                "error": "No finite values in the function domain. Try adjusting the range or checking the expression."
-            }
-        
-        # Replace infinities and NaNs with NaN for plotting
-        Z = np.where(mask, Z, np.nan)
-        
-        # Plot the surface
-        surf = ax.plot_surface(X, Y, Z, cmap=cmap, alpha=0.8, linewidth=0)
-        
-        # Add color bar
-        fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5)
-        
-        # Set labels
-        ax.set_xlabel(x_label)
-        ax.set_ylabel(y_label)
-        ax.set_zlabel(z_label)
-        
-        # Set view angle
-        ax.view_init(elev=view_angle[0], azim=view_angle[1])
-        
-        # Add title if provided, otherwise use LaTeX representation
-        if title:
-            ax.set_title(title)
-        else:
-            ax.set_title(f"$f(x,y) = {sp.latex(function_expr)}$")
-        
-        # Save or encode the figure
-        if save_path:
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
-            
-            # Save the figure
-            plt.savefig(save_path)
-            plt.close(fig)
-            
-            return {
-                "success": True,
-                "plot_type": "3d_function",
-                "file_path": save_path,
-                "data": {
-                    "expression": str(function_expr),
-                    "expression_latex": sp.latex(function_expr),
-                    "x_range": x_range,
-                    "y_range": y_range,
-                    "finite_points": np.sum(mask)
-                }
-            }
-        else:
-            # Convert to base64 for embedding in web applications
-            buffer = io.BytesIO()
-            plt.savefig(buffer, format='png')
-            plt.close(fig)
-            
-            buffer.seek(0)
-            image_png = buffer.getvalue()
-            buffer.close()
-            
-            image_base64 = base64.b64encode(image_png).decode('utf-8')
-            
-            return {
-                "success": True,
-                "plot_type": "3d_function",
-                "base64_image": image_base64,
-                "data": {
-                    "expression": str(function_expr),
-                    "expression_latex": sp.latex(function_expr),
-                    "x_range": x_range,
-                    "y_range": y_range,
-                    "finite_points": np.sum(mask)
-                }
-            }
+        # Update our grid with the adjusted version if we have finite values
+        if np.any(mask):
+            X, Y = X_adj, Y_adj
+            logging.info("Successfully found finite values with adjusted domain.")
     
-    except Exception as e:
+    if not np.any(mask):
         return {
             "success": False,
-            "error": f"Failed to plot function: {str(e)}"
+            "error": "No finite values in the function domain. Try adjusting the range or checking the expression."
+        }
+    
+    # Replace infinities and NaNs with NaN for plotting
+    Z = np.where(mask, Z, np.nan)
+    
+    # Plot the surface
+    surf = ax.plot_surface(X, Y, Z, cmap=cmap, alpha=0.8, linewidth=0)
+    
+    # Add color bar
+    fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5)
+    
+    # Set labels
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_zlabel(z_label)
+    
+    # Set view angle
+    ax.view_init(elev=view_angle[0], azim=view_angle[1])
+    
+    # Add title if provided, otherwise use expression representation
+    if title:
+        ax.set_title(title)
+    else:
+        if is_numpy_expression and display_expression:
+            ax.set_title(f"$f(x,y) = {display_expression}$")
+        elif isinstance(function_expr, sp.Expr):
+            ax.set_title(f"$f(x,y) = {sp.latex(function_expr)}$")
+        else:
+            ax.set_title("3D Surface Plot")
+    
+    # Save or encode the figure
+    if save_path:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
+        
+        # Save the figure
+        plt.savefig(save_path)
+        plt.close(fig)
+        
+        return {
+            "success": True,
+            "plot_type": "3d_function",
+            "file_path": save_path,
+            "data": {
+                "expression": str(function_expr),
+                "expression_latex": sp.latex(function_expr) if isinstance(function_expr, sp.Expr) else str(function_expr),
+                "x_range": x_range,
+                "y_range": y_range,
+                "finite_points": np.sum(mask)
+            }
+        }
+    else:
+        # Convert to base64 for embedding in web applications
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png')
+        plt.close(fig)
+        
+        buffer.seek(0)
+        image_png = buffer.getvalue()
+        buffer.close()
+        
+        image_base64 = base64.b64encode(image_png).decode('utf-8')
+        
+        return {
+            "success": True,
+            "plot_type": "3d_function",
+            "base64_image": image_base64,
+            "data": {
+                "expression": str(function_expr),
+                "expression_latex": sp.latex(function_expr) if isinstance(function_expr, sp.Expr) else str(function_expr),
+                "x_range": x_range,
+                "y_range": y_range,
+                "finite_points": np.sum(mask)
+            }
         }
 
 def preprocess_expression(expr: str) -> str:
