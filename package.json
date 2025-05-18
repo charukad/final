@@ -1,5 +1,14 @@
 {
+  "name": "noteflow-visualization-proxy",
+  "version": "1.0.0",
+  "description": "Proxy server for handling visualization requests with longer timeouts",
+  "main": "visualization_proxy.js",
+  "scripts": {
+    "start": "node visualization_proxy.js"
+  },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1"
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
   }
 }

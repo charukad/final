@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { chatWithMultimodal, processMultimodal } from "../../services/multimodalService";
+import { chatWithMultimodal, processMultimodal, retryVisualization } from "../../services/multimodalService";
 
 // Pre-defined function options
 const AI_FUNCTIONS = [
@@ -70,6 +70,168 @@ const NoteFlowGPT = ({ noteContent, onAddToNote, onClose }) => {
       }, 100);
     }
   }, [isRenamingChat]);
+
+  // Add click event listener for retry buttons
+  useEffect(() => {
+    const handleRetryClick = async (event) => {
+      // Check if the clicked element is a retry visualization button
+      if (event.target.classList.contains('retry-viz-btn')) {
+        const action = event.target.getAttribute('data-action');
+        
+        // Handle showing the latest visualization
+        if (action === 'latest') {
+          await handleShowLatestVisualization();
+          return;
+        }
+        
+        // Handle retry with prompt
+        const promptData = event.target.getAttribute('data-prompt');
+        if (promptData) {
+          const prompt = decodeURIComponent(promptData);
+          await handleRetryVisualization(prompt);
+        }
+      }
+    };
+
+    // Add event listener to the chat messages container
+    const chatMessages = document.querySelector('.chat-messages');
+    if (chatMessages) {
+      chatMessages.addEventListener('click', handleRetryClick);
+    }
+
+    // Cleanup
+    return () => {
+      if (chatMessages) {
+        chatMessages.removeEventListener('click', handleRetryClick);
+      }
+    };
+  }, [activeChatId, noteContent]);
+
+  // Handle showing the latest visualization
+  const handleShowLatestVisualization = async () => {
+    setLoading(true);
+    try {
+      // Add a message indicating we're fetching the latest visualization
+      const fetchingMessage = { 
+        role: "assistant", 
+        content: "Fetching the latest visualization...",
+        isTemporary: true
+      };
+      addMessageToChat(activeChatId, fetchingMessage);
+
+      // Fetch the latest visualization using the proxy
+      const response = await fetch('http://localhost:3001/proxy/latest');
+      
+      if (!response.ok) {
+        throw new Error(`Error fetching latest visualization: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.file_path) {
+        // Create a response with the visualization
+        const vizResponse = {
+          role: 'assistant',
+          content: `<div style="padding: 10px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: #10a37f; text-align: center;">Visualization Result</h3>
+            <img src="http://localhost:3001/proxy/static/${data.file_path}" alt="Generated visualization" style="max-width: 100%; border-radius: 8px;" />
+          </div>`,
+          isHtml: true
+        };
+        
+        // Remove any temporary messages and add the visualization
+        setChatHistory(prev => 
+          prev.map(chat => 
+            chat.id === activeChatId 
+              ? { 
+                  ...chat, 
+                  messages: chat.messages
+                    .filter(msg => !msg.isTemporary)
+                    .concat(vizResponse) 
+                } 
+              : chat
+          )
+        );
+      } else {
+        throw new Error('No visualization found or invalid response');
+      }
+    } catch (error) {
+      console.error("Error fetching latest visualization:", error);
+      const errorMessage = { 
+        role: "assistant", 
+        content: `I couldn't retrieve the latest visualization: ${error.message}. The visualization may not have been created successfully.`
+      };
+      
+      // Remove any temporary messages and add the error message
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === activeChatId 
+            ? { 
+                ...chat, 
+                messages: chat.messages
+                  .filter(msg => !msg.isTemporary)
+                  .concat(errorMessage) 
+              } 
+            : chat
+        )
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle retry visualization
+  const handleRetryVisualization = async (prompt) => {
+    setLoading(true);
+    try {
+      // Add a message indicating retry is in progress
+      const retryMessage = { 
+        role: "assistant", 
+        content: "Retrying visualization with extended timeout...",
+        isTemporary: true
+      };
+      addMessageToChat(activeChatId, retryMessage);
+
+      // Call the retry function with a longer timeout
+      const response = await retryVisualization(prompt, noteContent, 180000);
+      
+      // Remove the temporary message and add the real response
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === activeChatId 
+            ? { 
+                ...chat, 
+                messages: chat.messages
+                  .filter(msg => !msg.isTemporary)
+                  .concat(response) 
+              } 
+            : chat
+        )
+      );
+    } catch (error) {
+      console.error("Error retrying visualization:", error);
+      const errorMessage = { 
+        role: "assistant", 
+        content: "I'm sorry, I encountered an error while retrying the visualization. The server might be overloaded."
+      };
+      
+      // Remove any temporary messages and add the error message
+      setChatHistory(prev => 
+        prev.map(chat => 
+          chat.id === activeChatId 
+            ? { 
+                ...chat, 
+                messages: chat.messages
+                  .filter(msg => !msg.isTemporary)
+                  .concat(errorMessage) 
+              } 
+            : chat
+        )
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Create a new chat
   const createNewChat = () => {
@@ -281,6 +443,28 @@ const NoteFlowGPT = ({ noteContent, onAddToNote, onClose }) => {
   // Add response to note
   const handleAddToNote = (messageContent) => {
     if (onAddToNote) {
+      // Check if content contains an image tag
+      if (typeof messageContent === 'string' && messageContent.includes('<img src=')) {
+        // Extract just the image URL from HTML content
+        const imgSrcMatch = messageContent.match(/<img src="([^"]+)"/);
+        
+        if (imgSrcMatch && imgSrcMatch[1]) {
+          const imageUrl = imgSrcMatch[1];
+          // Add markdown image syntax which works with the PlainTextEditor
+          onAddToNote(`![Visualization](${imageUrl})`);
+          return;
+        }
+      }
+      
+      // For regular text content, strip HTML if present
+      if (typeof messageContent === 'string' && messageContent.includes('<')) {
+        // Simple HTML stripping for basic tags
+        const textContent = messageContent.replace(/<[^>]*>/g, '');
+        onAddToNote(textContent);
+        return;
+      }
+      
+      // For regular text content
       onAddToNote(messageContent);
     }
   };
@@ -363,7 +547,7 @@ const NoteFlowGPT = ({ noteContent, onAddToNote, onClose }) => {
       <div className="noteflow-chat">
         <div className="chat-messages">
           {messages.map((message, index) => (
-            <div key={index} className={`message ${message.role} ${message.isWelcome ? 'welcome' : ''}`}>
+            <div key={index} className={`message ${message.role} ${message.isWelcome ? 'welcome' : ''} ${message.isTemporary ? 'temporary' : ''}`}>
               <div className="message-content">
                 {message.isHtml ? (
                   <div dangerouslySetInnerHTML={{ __html: message.content }} />
@@ -375,7 +559,7 @@ const NoteFlowGPT = ({ noteContent, onAddToNote, onClose }) => {
                     )
                 )}
               </div>
-              {message.role === "assistant" && !loading && (
+              {message.role === "assistant" && !loading && !message.isTemporary && (
                 <button
                   className="add-to-note-button"
                   onClick={() => handleAddToNote(message.isHtml ? message.content : message.content)}

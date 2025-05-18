@@ -68,45 +68,89 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  overflow: hidden;
+  overflow: auto;
   position: relative;
 }
 
-.editor-content {
+/* Ensure proper layout with chat open */
+.editor-page.noteflow-gpt-open {
   display: flex;
-  flex: 1;
-  overflow: hidden;
-  background-color: #ffffff;
-  position: relative;
+  flex-direction: row;
+  height: 100vh;
+  overflow: auto;
 }
 
+/* Fix editor main content area */
 .editor-main {
   flex: 1;
-  overflow: auto;
+  overflow: auto !important;
   background-color: #ffffff;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
-  align-items: center;
   padding: 0;
-  position: relative;
-  z-index: 1;
-  width: 100%; /* Full width */
-  margin-left: 250px;
   box-sizing: border-box;
+  width: 100% !important;
+  margin-left: 250px;
+  margin-right: 0;
 }
 
+/* When GPT panel is open, adjust main content width */
+.editor-page.noteflow-gpt-open .editor-main {
+  width: calc(100% - 380px - 250px) !important; /* Account for sidebar and chat panel */
+  margin-right: 0;
+  flex: 0 0 auto;
+}
+
+/* Text editor styling */
+.text-editor {
+  width: 100%;
+  max-width: 100%;
+  background-color: white;
+  display: block !important;
+  min-height: 500px;
+  padding: 20px;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Properly position chat panel */
+.noteflow-gpt-panel {
+  width: 380px;
+  background-color: #ffffff;
+  box-shadow: -5px 0px 25px rgba(0, 0, 0, 0.1);
+  display: flex !important;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+}
+
+/* Ensure editor content is visible */
+.editor-content {
+  padding: 20px;
+  min-height: 500px;
+  line-height: 1.6;
+  font-size: 16px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100%;
+}
+
+/* Editor content wrapper */
 .editor-content-wrapper {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  max-width: 100%; /* Full width */
-  margin: 0;
+  display: block !important;
+  overflow: auto;
   padding: 0;
   background-color: white;
   box-sizing: border-box;
-  z-index: 1;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Make entire plain text editor container full width */
@@ -242,46 +286,16 @@
   color: #2e7d32;
 }
 
-/* Text Editor */
-.text-editor {
-  width: 100%;
-  max-width: 800px;
-  background-color: white;
-  border-radius: 0;
-  box-shadow: none;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  padding: 20px;
-}
-
-.editor-content {
-  flex: 1;
-  padding: 20px;
-  min-height: 500px;
-  outline: none;
-  line-height: 1.6;
-  font-size: 16px;
-}
-
 /* Toolbar */
 .editor-toolbar {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 8px 20px !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  background-color: #f8f9fa !important;
-  border-bottom: 1px solid #e0e0e0 !important;
-  gap: 5px !important;
-  z-index: 10 !important;
-  align-items: center !important;
-  overflow-x: auto !important;
-  position: relative !important;
-  box-sizing: border-box !important;
-  left: 0 !important;
-  right: 0 !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f5f5f5;
+  position: relative;
+  z-index: 20; /* Ensure toolbar is above chat elements */
 }
 
 .toolbar-button {
@@ -1098,7 +1112,10 @@
   overflow: hidden;
   transition: all 0.3s ease;
   border-left: none;
-  position: relative;
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
   z-index: 10;
 }
 
@@ -1112,6 +1129,8 @@
   color: white;
   border-bottom: none;
   box-shadow: 0 2px 10px rgba(16, 163, 127, 0.2);
+  position: relative;
+  z-index: 15; /* Higher than chat messages */
 }
 
 .noteflow-gpt-panel .header-left {
@@ -1123,6 +1142,17 @@
 .noteflow-gpt-panel .header-right {
   display: flex;
   align-items: center;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f5f5f5;
+  position: relative;
+  z-index: 20; /* Ensure toolbar is above chat elements */
 }
 
 .noteflow-gpt-panel .panel-header h3 {
@@ -1316,6 +1346,7 @@
 /* Function Menu Styles */
 .function-menu-container {
   position: relative;
+  z-index: 10; /* Higher z-index to stay above messages */
 }
 
 .function-menu {
@@ -1329,7 +1360,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  z-index: 10;
+  z-index: 20; /* Higher z-index to ensure it's above messages */
   box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
   animation: slide-up 0.2s ease-out;
 }
@@ -1396,6 +1427,7 @@
   height: calc(100% - 56px); /* Account for header height */
   overflow: hidden;
   background-color: #f7f7f8;
+  position: relative; /* Add position relative */
 }
 
 .noteflow-chat .chat-messages {
@@ -1406,6 +1438,9 @@
   flex-direction: column;
   gap: 16px;
   scroll-behavior: smooth;
+  position: relative; /* Add position relative */
+  max-height: 100%; /* Prevent overflow */
+  z-index: 1; /* Lower z-index */
 }
 
 .noteflow-chat .chat-input-area {
@@ -1416,6 +1451,7 @@
   position: relative;
   align-items: flex-end;
   gap: 8px;
+  z-index: 5; /* Higher z-index than messages */
 }
 
 .noteflow-chat .chat-input {
@@ -1494,6 +1530,8 @@
   animation: message-fade-in 0.3s ease;
   border-radius: 0;
   box-shadow: none;
+  z-index: 1;
+  overflow: visible;
 }
 
 @keyframes message-fade-in {
@@ -1651,8 +1689,8 @@
 }
 
 .editor-page.noteflow-gpt-open .editor-main {
-  width: calc(100% - 380px);
-  border-right: 1px solid #e0e0e0;
+  width: calc(100% - 380px) !important;
+  margin-right: 380px !important;
 }
 
 /* Editor layout styling */
@@ -1720,6 +1758,8 @@
 /* Handle images with special styling */
 .editor-content-wrapper img,
 .editor-preview img {
+  position: static;
+  z-index: auto;
   max-width: 100%;
   height: auto;
   display: block;
@@ -1803,4 +1843,173 @@
   box-sizing: border-box !important;
   padding: 0 !important;
   margin: 0 !important;
+}
+
+/* Retry visualization button */
+.retry-viz-btn {
+  background-color: #10a37f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.retry-viz-btn:hover {
+  background-color: #0c8064;
+}
+
+/* Temporary message styles */
+.message.temporary {
+  opacity: 0.7;
+  border-left: 3px solid #ffc107 !important;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 0.9; }
+  100% { opacity: 0.7; }
+}
+
+/* Increase the timeout indicator text size for better visibility */
+.noteflow-chat .message.assistant.loading .typing-indicator {
+  padding: 5px 10px;
+}
+
+/* Add server status indicator */
+.server-status {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  padding: 5px;
+  background-color: #f8f8f8;
+  border-top: 1px solid #eee;
+}
+
+.server-status.connected {
+  color: #10a37f;
+}
+
+.server-status.disconnected {
+  color: #e53935;
+}
+
+/* Ensure chat content stays in container */
+.noteflow-chat {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Keep messages inside chat container */
+.noteflow-chat .chat-messages {
+  position: relative;
+  z-index: 1;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+/* Add higher z-index to toolbar */
+.editor-toolbar {
+  z-index: 30 !important;
+  position: relative !important;
+}
+
+/* Ensure individual messages have proper stacking */
+.noteflow-chat .message {
+  z-index: 1;
+  position: relative;
+  overflow: visible;
+}
+
+/* Make chat input area stay above messages */
+.noteflow-chat .chat-input-area {
+  z-index: 5;
+  position: relative;
+}
+
+/* Ensure visualizations stay inside the editor */
+.editor-content-wrapper img,
+.editor-main img, 
+.text-editor img,
+.noteflow-chat img {
+  position: static;
+  z-index: auto;
+  max-width: 100%;
+}
+
+/* Visualization containers */
+.embedded-images-preview,
+.inline-preview,
+[style*="border-radius: 10px; box-shadow"] {
+  position: static;
+  z-index: auto;
+  max-width: 100%;
+  overflow: visible;
+}
+
+/* Explicitly set the editor main content area to have higher z-index than chat content */
+.editor-main .editor-content-wrapper {
+  position: relative;
+  z-index: 5;
+  background-color: white;
+}
+
+/* Add background to visualizations so they're not transparent */
+img[src*="visualizations"],
+img[src*="static"] {
+  background-color: white;
+  position: static;
+  z-index: auto;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.editor-toolbar,
+.editor-header {
+  position: relative;
+  z-index: 100 !important;
+  background-color: #f8f9fa;
+}
+
+/* Create proper stacking for editor content */
+.editor-content {
+  position: static;
+  z-index: auto;
+  width: 100%;
+  isolation: auto;
+}
+
+/* Target visualization containers without breaking scrolling */
+div[style*="padding: 10px; background: white; border-radius: 10px; box-shadow"],
+div[style*="padding: 10px; background:"],
+[style*="border-radius: 10px; box-shadow"] {
+  position: static !important;
+  z-index: auto !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  display: block !important;
+  margin: 15px 0 !important;
+  transform: none !important;
+}
+
+/* Ensure all content in the main area stays below the toolbar */
+.editor-main * {
+  z-index: auto; /* Reset any explicit z-indices */
+}
+
+/* Keep all text editor content below the toolbar */
+.text-editor {
+  isolation: auto;
+  z-index: auto;
+  position: static;
+}
+
+/* Fix any remaining scroll issues */
+body, html {
+  height: 100%;
+  overflow: auto;
 }

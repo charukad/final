@@ -537,8 +537,49 @@ const EditorPage = () => {
   const addToNote = (content) => {
     if (!note) return;
     
+    // Ensure there's proper spacing between existing content and new content
     const newContent = `${note.content}${note.content ? '\n\n' : ''}${content}`;
     handleContentChange(newContent);
+    
+    // Force a re-render and focus the editor
+    setTimeout(() => {
+      // Find the editor element and toolbar
+      const editorContainer = document.querySelector('.editor-container');
+      const editorElement = document.querySelector('.editor-textarea');
+      const toolbar = document.querySelector('.editor-toolbar');
+      
+      if (editorElement) {
+        // Focus the editor and move cursor to the end
+        editorElement.focus();
+        editorElement.setSelectionRange(newContent.length, newContent.length);
+        
+        // Scroll to where the new content was added
+        const contentHeight = editorElement.scrollHeight;
+        editorElement.scrollTop = contentHeight;
+        
+        // Make sure editor container is visible
+        if (editorContainer) {
+          editorContainer.style.display = 'flex';
+          editorContainer.style.flexDirection = 'column';
+        }
+        
+        // Ensure toolbar is visible
+        if (toolbar) {
+          toolbar.style.display = 'flex';
+          toolbar.style.zIndex = '10';
+          toolbar.style.position = 'sticky';
+          toolbar.style.top = '0';
+        }
+      }
+      
+      // If we're in preview mode, switch back to edit mode
+      if (showPreview) {
+        setShowPreview(false);
+      }
+      
+      // Trigger a window resize event to make sure all elements are properly laid out
+      window.dispatchEvent(new Event('resize'));
+    }, 100);
   };
 
   const toggleMobileMenu = () => {

@@ -87,7 +87,7 @@ def plot_function_3d(
                 
                 # 3. Try again with improved expression
                 logging.info(f"Retrying with preprocessed expression: {function_expr}")
-                function_expr = sp.sympify(function_expr)
+            function_expr = sp.sympify(function_expr)
                 
         except Exception as e:
             return {
@@ -120,23 +120,44 @@ def plot_function_3d(
             # If all values are non-finite, try to provide a fallback
             logging.warning("No finite values in the specified range. Adjusting domain...")
             
+            # Initialize adjusted variables first to avoid reference before assignment
+            X_adj, Y_adj = X, Y
+            
             # Try with a smaller domain to see if we can get valid results
-            x_adjusted = np.linspace(x_range[0]/2, x_range[1]/2, num_points)
-            y_adjusted = np.linspace(y_range[0]/2, y_range[1]/2, num_points)
-            X_adj, Y_adj = np.meshgrid(x_adjusted, y_adjusted)
+            try:
+                x_adjusted = np.linspace(x_range[0]/2, x_range[1]/2, num_points)
+                y_adjusted = np.linspace(y_range[0]/2, y_range[1]/2, num_points)
+                X_adj, Y_adj = np.meshgrid(x_adjusted, y_adjusted)
+                
+                Z = safe_eval(X_adj, Y_adj)
+                mask = np.isfinite(Z)
+                
+                # If we still don't have finite values, try another adjustment
+                if not np.any(mask):
+                    logging.warning("Still no finite values. Trying another adjustment...")
+                    x_adjusted = np.linspace(-2, 2, num_points)
+                    y_adjusted = np.linspace(-2, 2, num_points)
+                    X_adj, Y_adj = np.meshgrid(x_adjusted, y_adjusted)
+                    
+                    Z = safe_eval(X_adj, Y_adj)
+                    mask = np.isfinite(Z)
+            except Exception as adjust_error:
+                logging.error(f"Error during domain adjustment: {adjust_error}")
+                # Fallback to original grid on error
+                X_adj, Y_adj = X, Y
+                Z = safe_eval(X, Y)
+                mask = np.isfinite(Z)
             
-            Z = safe_eval(X_adj, Y_adj)
-            mask = np.isfinite(Z)
-            
-            if not np.any(mask):
-                return {
-                    "success": False,
-                    "error": "No finite values in the function domain. Try adjusting the range or checking the expression."
-                }
-            else:
-                # Update our grid with the adjusted version
+            # Update our grid with the adjusted version if we have finite values
+            if np.any(mask):
                 X, Y = X_adj, Y_adj
                 logging.info("Successfully found finite values with adjusted domain.")
+        
+        if not np.any(mask):
+            return {
+                "success": False,
+                "error": "No finite values in the function domain. Try adjusting the range or checking the expression."
+            }
         
         # Replace infinities and NaNs with NaN for plotting
         Z = np.where(mask, Z, np.nan)

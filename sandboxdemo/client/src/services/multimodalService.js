@@ -1,49 +1,77 @@
 import axios from 'axios';
 
-const MULTIMODAL_API_URL = 'http://localhost:8000/multimodal/central/process';
+// Use the proxy server instead of direct communication with the visualization server
+// Make the port configurable
+const PROXY_PORT = window.PROXY_PORT || 3001;
+const PROXY_URL = `http://localhost:${PROXY_PORT}/proxy`;
 
 // Process text via the multimodal endpoint
 export const processMultimodal = async (content, input_type = 'text') => {
   try {
     // Create axios instance with longer timeout
     const axiosInstance = axios.create({
-      timeout: 60000 // 60 seconds timeout for visualization generation
+      timeout: 180000 // 3 minute timeout
     });
     
-    const response = await axiosInstance.post(MULTIMODAL_API_URL, {
+    // Check if this is a visualization request
+    const vizType = detectVisualizationType(content);
+    if (vizType) {
+      try {
+        console.log(`Detected visualization request of type: ${vizType}, using proxy server`);
+        
+        // Use the proxy server for visualization requests
+        const response = await axiosInstance.post(`${PROXY_URL}/visualization`, {
+          prompt: content,
+          viz_type: vizType // Pass the specific visualization type
+        });
+        
+        if (response.data && response.data.success) {
+          // For successful visualizations
+          if (response.data.file_path) {
+            return {
+              response_type: 'image',
+              content: `${PROXY_URL}/static/${response.data.file_path}`,
+              metadata: response.data
+            };
+          } else if (response.data.base64_image) {
+            return {
+              response_type: 'image',
+              content: response.data.base64_image,
+              metadata: response.data
+            };
+          }
+        } else {
+          return {
+            response_type: 'text',
+            content: `I attempted to create a visualization, but encountered an error: ${response.data.error || 'Unknown error'}. Please check your data format and try again.`,
+            metadata: response.data
+          };
+        }
+      } catch (visError) {
+        // If proxy request fails, show simpler error message without retry button
+        console.error('Visualization proxy error:', visError);
+        return {
+          response_type: 'text',
+          content: `I encountered an error processing your visualization request: ${visError.message}. Please try again with different parameters.`,
+          isError: true
+        };
+      }
+    }
+    
+    // For non-visualization requests, use the proxy for multimodal API
+    const response = await axiosInstance.post(`${PROXY_URL}/multimodal`, {
       input_type,
       content
     });
     
-    // Check if we have a successful response
+    // Handle successful non-visualization responses
     if (response.data && response.data.success) {
-      // Handle visualization data specifically
-      if (response.data.agent_type === 'visualization') {
-        // Check if visualization was successful
-        if (response.data.visualization_data && response.data.visualization_data.success) {
-          return {
-            response_type: 'image',
-            content: response.data.visualization_data.image_url || response.data.visualization_data.base64_image,
-            metadata: response.data
-          };
-        } else {
-          // Visualization failed but we got a response
-          return {
-            response_type: 'text',
-            content: `I attempted to create a visualization, but encountered an error: ${response.data.visualization_data?.error || 'Unknown error'}. Please check your data format and try again.`,
-            metadata: response.data
-          };
-        }
-      }
-      
-      // Handle other successful responses
       return {
         response_type: 'text',
         content: response.data.content || response.data.message || JSON.stringify(response.data),
         metadata: response.data
       };
     } else {
-      // Response structure doesn't match expected format
       return {
         response_type: 'text',
         content: `The service returned an unexpected response format: ${JSON.stringify(response.data)}`,
@@ -56,10 +84,134 @@ export const processMultimodal = async (content, input_type = 'text') => {
     // Return error as response to display to user
     return {
       response_type: 'text',
-      content: `I encountered an error connecting to the multimodal service: ${error.message}. Please ensure the service is running at http://localhost:8000.`,
-      isError: true
+      content: `I encountered an error connecting to the multimodal service: ${error.message}. Please ensure the proxy service is running at http://localhost:${PROXY_PORT}.`,
+      isError: true,
+      canRetry: isVisualizationRequest(content)
     };
   }
+};
+
+// Improved function to detect specific visualization types
+const detectVisualizationType = (content) => {
+  const contentLower = content.toLowerCase();
+  
+  // 3D plots
+  if (contentLower.includes('3d surface') || 
+      contentLower.includes('3d plot') || 
+      contentLower.includes('surface plot') ||
+      contentLower.match(/\bf\s*\(\s*x\s*,\s*y\s*\)/) ||
+      contentLower.match(/\bz\s*=\s*f\s*\(\s*x\s*,\s*y\s*\)/)) {
+    return 'function_3d';
+  }
+  
+  if (contentLower.includes('3d curve') || 
+      contentLower.includes('parametric 3d') || 
+      contentLower.includes('parametric curve') ||
+      contentLower.includes('space curve')) {
+    return 'parametric_3d';
+  }
+  
+  // 2D plots
+  if (contentLower.includes('function plot') || 
+      contentLower.includes('plot function') || 
+      contentLower.match(/\bf\s*\(\s*x\s*\)/) ||
+      contentLower.match(/\by\s*=\s*f\s*\(\s*x\s*\)/)) {
+    return 'function_2d';
+  }
+  
+  if (contentLower.includes('multiple functions') || 
+      contentLower.includes('compare functions') || 
+      contentLower.includes('plot multiple')) {
+    return 'multiple_functions_2d';
+  }
+  
+  // Statistical plots
+  if (contentLower.includes('pie chart') || contentLower.includes('piechart') || 
+      contentLower.match(/\bpie\b/) || contentLower.includes('donut')) {
+    return 'pie';
+  }
+  
+  if (contentLower.includes('bar chart') || contentLower.includes('barchart') || 
+      contentLower.match(/\bbar\s+graph\b/) || contentLower.match(/\bbar\s+plot\b/)) {
+    return 'bar';
+  }
+  
+  if (contentLower.includes('line chart') || contentLower.includes('linechart') || 
+      contentLower.match(/\bline\s+graph\b/) || contentLower.match(/\bline\s+plot\b/)) {
+    return 'line';
+  }
+  
+  if (contentLower.includes('scatter plot') || contentLower.includes('scatterplot') || 
+      contentLower.match(/\bscatter\b/)) {
+    return 'scatter';
+  }
+  
+  if (contentLower.includes('histogram') || contentLower.match(/\bhist\b/)) {
+    return 'histogram';
+  }
+  
+  if (contentLower.includes('heatmap') || contentLower.includes('heat map')) {
+    return 'heatmap';
+  }
+  
+  if (contentLower.includes('box plot') || contentLower.includes('boxplot')) {
+    return 'box';
+  }
+  
+  if (contentLower.includes('violin plot') || contentLower.includes('violinplot')) {
+    return 'violin';
+  }
+  
+  if (contentLower.includes('contour plot') || contentLower.includes('contourplot')) {
+    return 'contour';
+  }
+  
+  if (contentLower.includes('network') || contentLower.includes('graph visualization')) {
+    return 'network';
+  }
+  
+  if (contentLower.includes('chord diagram') || contentLower.includes('chord chart')) {
+    return 'chord';
+  }
+  
+  if (contentLower.includes('sankey') || contentLower.includes('flow diagram')) {
+    return 'sankey';
+  }
+  
+  if (contentLower.includes('treemap') || contentLower.includes('tree map')) {
+    return 'treemap';
+  }
+  
+  if (contentLower.includes('area chart') || contentLower.includes('area plot')) {
+    return 'area';
+  }
+  
+  if (contentLower.includes('bubble chart') || contentLower.includes('bubble plot')) {
+    return 'bubble';
+  }
+  
+  if (contentLower.includes('radar chart') || contentLower.includes('spider chart')) {
+    return 'radar';
+  }
+  
+  // General visualization detection for other types
+  if (isVisualizationRequest(content)) {
+    return 'auto';
+  }
+  
+  return null;
+};
+
+// Check if content likely involves a visualization request
+const isVisualizationRequest = (content) => {
+  const visualizationKeywords = [
+    'plot', 'chart', 'graph', 'visualize', 'visualization',
+    'histogram', 'pie chart', 'bar chart', 'line graph', 'scatter plot',
+    'function', '3d', 'surface', 'contour', 'heatmap'
+  ];
+  
+  const contentLower = content.toLowerCase();
+  return visualizationKeywords.some(keyword => contentLower.includes(keyword));
 };
 
 // Chat with the multimodal endpoint
@@ -75,7 +227,7 @@ export const chatWithMultimodal = async (messages, noteContext = null) => {
       contextContent += `My current note contains: ${noteContext.substring(0, 500)}${noteContext.length > 500 ? '...' : ''}\n\n`;
     }
     
-    // Add previous messages for context (limit to last 5 for brevity)
+    // Add previous messages for context
     if (messages.length > 1) {
       const contextMessages = messages.slice(-6, -1); // Get last 5 messages before the current one
       contextContent += "Previous messages in our conversation:\n";
@@ -93,14 +245,25 @@ export const chatWithMultimodal = async (messages, noteContext = null) => {
     
     // Handle different response types
     if (result.response_type === 'image') {
-      // For image responses, we'll return HTML that embeds the image
+      // For image responses, return HTML that embeds the image
       return {
         role: 'assistant',
-        content: `<img src="${result.content}" alt="Generated visualization" style="max-width: 100%; border-radius: 8px;" />`,
+        content: `<div style="padding: 10px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <h3 style="color: #10a37f; text-align: center;">Visualization Result</h3>
+          <img src="${result.content}" alt="Generated visualization" style="max-width: 100%; border-radius: 8px;" />
+        </div>`,
         isHtml: true
       };
     } else {
-      // For text responses
+      // For text responses, include HTML if specified
+      if (result.isHtml) {
+        return {
+          role: 'assistant',
+          content: result.content,
+          isHtml: true
+        };
+      }
+      
       return {
         role: 'assistant',
         content: result.content || "I'm sorry, I couldn't process that request."
@@ -110,7 +273,82 @@ export const chatWithMultimodal = async (messages, noteContext = null) => {
     console.error("Chat with multimodal error:", error);
     return {
       role: 'assistant',
-      content: "I'm sorry, I encountered an error connecting to the multimodal service. Please check if the service is running at http://localhost:8000."
+      content: "I'm sorry, I encountered an error connecting to the multimodal service. Please check if the service is running properly."
+    };
+  }
+};
+
+// Fetch the latest visualization directly
+export const getLatestVisualization = async () => {
+  try {
+    const response = await axios.get(`${PROXY_URL}/latest`);
+    
+    if (response.data && response.data.success && response.data.file_path) {
+      return {
+        success: true,
+        url: `${PROXY_URL}/static/${response.data.file_path}`,
+        type: response.data.visualization_type,
+        timestamp: response.data.timestamp
+      };
+    } else {
+      throw new Error('No visualization data found');
+    }
+  } catch (error) {
+    console.error('Error fetching latest visualization:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// Retry visualization with extended timeout
+export const retryVisualization = async (prompt, noteContext = null, timeout = 180000) => {
+  try {
+    // Create axios instance with custom timeout
+    const axiosInstance = axios.create({
+      timeout: timeout // Extended timeout for retries
+    });
+    
+    // Build context from note if available
+    let fullPrompt = prompt;
+    if (noteContext && noteContext.trim().length > 0) {
+      fullPrompt = `My current note contains: ${noteContext.substring(0, 500)}${noteContext.length > 500 ? '...' : ''}\n\n${prompt}`;
+    }
+    
+    // Detect the visualization type from the prompt
+    const vizType = detectVisualizationType(fullPrompt);
+    console.log(`Retrying visualization with type: ${vizType || 'auto'}`);
+    
+    // Use the proxy server for visualization requests
+    const response = await axiosInstance.post(`${PROXY_URL}/visualization`, {
+      prompt: fullPrompt,
+      viz_type: vizType || 'auto'
+    });
+    
+    if (response.data && response.data.success) {
+      // For successful visualizations
+      if (response.data.file_path) {
+        return {
+          role: 'assistant',
+          content: `<div style="padding: 10px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: #10a37f; text-align: center;">Visualization Result</h3>
+            <img src="${PROXY_URL}/static/${response.data.file_path}" alt="Generated visualization" style="max-width: 100%; border-radius: 8px;" />
+          </div>`,
+          isHtml: true
+        };
+      }
+    }
+    
+    return {
+      role: 'assistant',
+      content: response.data.message || 'Visualization attempt failed.',
+    };
+  } catch (error) {
+    console.error('Error in retry visualization:', error);
+    return {
+      role: 'assistant',
+      content: `I encountered an error while retrying the visualization: ${error.message}. Please try again or check your data format.`
     };
   }
 }; 

@@ -1,0 +1,194 @@
+import axios from 'axios';
+
+// Use the proxy server instead of direct communication with the visualization server
+const PROXY_URL = 'http://localhost:3001/proxy';
+
+// Process text via the multimodal endpoint
+export const processMultimodal = async (content, input_type = 'text') => {
+  try {
+    // Create axios instance with longer timeout
+    const axiosInstance = axios.create({
+      timeout: 180000 // 3 minute timeout
+    });
+    
+    // Check if this is a visualization request
+    if (isVisualizationRequest(content)) {
+      try {
+        console.log('Detected visualization request, using proxy server');
+        
+        // Use the proxy server for visualization requests
+        const response = await axiosInstance.post(`${PROXY_URL}/visualization`, {
+          prompt: content,
+          viz_type: 'auto'
+        });
+        
+        if (response.data && response.data.success) {
+          // For successful visualizations
+          if (response.data.file_path) {
+            return {
+              response_type: 'image',
+              content: `${PROXY_URL}/static/${response.data.file_path}`,
+              metadata: response.data
+            };
+          } else if (response.data.base64_image) {
+            return {
+              response_type: 'image',
+              content: response.data.base64_image,
+              metadata: response.data
+            };
+          }
+        } else {
+          return {
+            response_type: 'text',
+            content: `I attempted to create a visualization, but encountered an error: ${response.data.error || 'Unknown error'}. Please check your data format and try again.`,
+            metadata: response.data
+          };
+        }
+      } catch (visError) {
+        // If proxy request fails, show error with retrieval button
+        console.error('Visualization proxy error:', visError);
+        return {
+          response_type: 'text',
+          content: `I attempted to create a visualization, but encountered an error. However, the visualization might still be processing in the background.
+          
+<div>
+  <button class="retry-viz-btn" data-action="latest" style="background-color: #10a37f; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; margin-top: 10px; font-weight: 500;">Show Latest Visualization</button>
+</div>`,
+          isHtml: true,
+          isError: true
+        };
+      }
+    }
+    
+    // For non-visualization requests, use the proxy for multimodal API
+    const response = await axiosInstance.post(`${PROXY_URL}/multimodal`, {
+      input_type,
+      content
+    });
+    
+    // Handle successful non-visualization responses
+    if (response.data && response.data.success) {
+      return {
+        response_type: 'text',
+        content: response.data.content || response.data.message || JSON.stringify(response.data),
+        metadata: response.data
+      };
+    } else {
+      return {
+        response_type: 'text',
+        content: `The service returned an unexpected response format: ${JSON.stringify(response.data)}`,
+        metadata: response.data
+      };
+    }
+  } catch (error) {
+    console.error("Multimodal API error:", error.response?.data || error.message);
+    
+    // Return error as response to display to user
+    return {
+      response_type: 'text',
+      content: `I encountered an error connecting to the multimodal service: ${error.message}. Please ensure the proxy service is running at http://localhost:3001.`,
+      isError: true,
+      canRetry: isVisualizationRequest(content)
+    };
+  }
+};
+
+// Check if content likely involves a visualization request
+const isVisualizationRequest = (content) => {
+  const visualizationKeywords = [
+    'plot', 'chart', 'graph', 'visualize', 'visualization',
+    'histogram', 'pie chart', 'bar chart', 'line graph', 'scatter plot',
+    'function', '3d', 'surface', 'contour', 'heatmap'
+  ];
+  
+  const contentLower = content.toLowerCase();
+  return visualizationKeywords.some(keyword => contentLower.includes(keyword));
+};
+
+// Chat with the multimodal endpoint
+export const chatWithMultimodal = async (messages, noteContext = null) => {
+  try {
+    // Get the last user message
+    const lastMessage = messages[messages.length - 1];
+    
+    // Build context from previous messages and note context
+    let contextContent = '';
+    
+    if (noteContext && noteContext.trim().length > 0) {
+      contextContent += `My current note contains: ${noteContext.substring(0, 500)}${noteContext.length > 500 ? '...' : ''}\n\n`;
+    }
+    
+    // Add previous messages for context
+    if (messages.length > 1) {
+      const contextMessages = messages.slice(-6, -1); // Get last 5 messages before the current one
+      contextContent += "Previous messages in our conversation:\n";
+      contextMessages.forEach(msg => {
+        contextContent += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content.substring(0, 200)}${msg.content.length > 200 ? '...' : ''}\n`;
+      });
+      contextContent += "\n";
+    }
+    
+    // Add the current message
+    contextContent += `User's current question: ${lastMessage.content}`;
+    
+    // Send to multimodal endpoint
+    const result = await processMultimodal(contextContent);
+    
+    // Handle different response types
+    if (result.response_type === 'image') {
+      // For image responses, return HTML that embeds the image
+      return {
+        role: 'assistant',
+        content: `<div style="padding: 10px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <h3 style="color: #10a37f; text-align: center;">Visualization Result</h3>
+          <img src="${result.content}" alt="Generated visualization" style="max-width: 100%; border-radius: 8px;" />
+        </div>`,
+        isHtml: true
+      };
+    } else {
+      // For text responses, include HTML if specified
+      if (result.isHtml) {
+        return {
+          role: 'assistant',
+          content: result.content,
+          isHtml: true
+        };
+      }
+      
+      return {
+        role: 'assistant',
+        content: result.content || "I'm sorry, I couldn't process that request."
+      };
+    }
+  } catch (error) {
+    console.error("Chat with multimodal error:", error);
+    return {
+      role: 'assistant',
+      content: "I'm sorry, I encountered an error connecting to the multimodal service. Please check if the service is running properly."
+    };
+  }
+};
+
+// Fetch the latest visualization directly
+export const getLatestVisualization = async () => {
+  try {
+    const response = await axios.get(`${PROXY_URL}/latest`);
+    
+    if (response.data && response.data.success && response.data.file_path) {
+      return {
+        success: true,
+        url: `${PROXY_URL}/static/${response.data.file_path}`,
+        type: response.data.visualization_type,
+        timestamp: response.data.timestamp
+      };
+    } else {
+      throw new Error('No visualization data found');
+    }
+  } catch (error) {
+    console.error('Error fetching latest visualization:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}; 
