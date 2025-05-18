@@ -8,6 +8,7 @@ import AIAssistantPanel from "../components/ai-assistant/AIAssistantPanel";
 import NoteFlowGPT from "../components/ai-assistant/NoteFlowGPT";
 import CollaborationPanel from "../components/collaboration/CollaborationPanel";
 import MathAgent from "../components/math/MathAgent";
+import MathResearchAgent from "../components/math/MathResearchAgent";
 import NoSocketModal from "../components/common/NoSocketModal";
 import { getNoteById, createNote, updateNote } from "../services/noteService";
 import socketService from "../services/socketService";
@@ -31,6 +32,7 @@ const EditorPage = () => {
   const [showNoteFlowGPT, setShowNoteFlowGPT] = useState(false);
   const [showCollaborationPanel, setShowCollaborationPanel] = useState(false);
   const [showMathAgent, setShowMathAgent] = useState(false);
+  const [showResearchAgent, setShowResearchAgent] = useState(false);
   const [activeUsers, setActiveUsers] = useState([]);
   const [COMMENTS, setComments] = useState([]);
   const [error, setError] = useState(null);
@@ -413,31 +415,57 @@ const EditorPage = () => {
 
   // Toggle AI assistant panel
   const toggleAIPanel = () => {
-    setShowAIPanel((prev) => !prev);
-    if (showCollaborationPanel) setShowCollaborationPanel(false);
-    if (showNoteFlowGPT) setShowNoteFlowGPT(false);
+    setShowAIPanel(!showAIPanel);
+    if (!showAIPanel) {
+      setShowNoteFlowGPT(false);
+      setShowCollaborationPanel(false);
+      setShowMathAgent(false);
+      setShowResearchAgent(false);
+    }
   };
 
   // Toggle NoteFlow GPT panel
   const toggleNoteFlowGPT = () => {
-    setShowNoteFlowGPT((prev) => !prev);
-    if (showAIPanel) setShowAIPanel(false);
-    if (showCollaborationPanel) setShowCollaborationPanel(false);
+    setShowNoteFlowGPT(!showNoteFlowGPT);
+    if (!showNoteFlowGPT) {
+      setShowAIPanel(false);
+      setShowCollaborationPanel(false);
+      setShowMathAgent(false);
+      setShowResearchAgent(false);
+    }
   };
 
   // Toggle collaboration panel
   const toggleCollaborationPanel = () => {
-    setShowCollaborationPanel((prev) => !prev);
-    if (showAIPanel) setShowAIPanel(false);
-    if (showNoteFlowGPT) setShowNoteFlowGPT(false);
+    setShowCollaborationPanel(!showCollaborationPanel);
+    if (!showCollaborationPanel) {
+      setShowAIPanel(false);
+      setShowNoteFlowGPT(false);
+      setShowMathAgent(false);
+      setShowResearchAgent(false);
+    }
   };
 
   // Toggle math agent panel
   const toggleMathAgent = () => {
-    setShowMathAgent((prev) => !prev);
-    if (showAIPanel) setShowAIPanel(false);
-    if (showNoteFlowGPT) setShowNoteFlowGPT(false);
-    if (showCollaborationPanel) setShowCollaborationPanel(false);
+    setShowMathAgent(!showMathAgent);
+    if (!showMathAgent) {
+      setShowAIPanel(false);
+      setShowNoteFlowGPT(false);
+      setShowCollaborationPanel(false);
+      setShowResearchAgent(false);
+    }
+  };
+
+  // Toggle research agent panel
+  const toggleResearchAgent = () => {
+    setShowResearchAgent(!showResearchAgent);
+    if (!showResearchAgent) {
+      setShowAIPanel(false);
+      setShowNoteFlowGPT(false);
+      setShowCollaborationPanel(false);
+      setShowMathAgent(false);
+    }
   };
 
   // Manual save with visual feedback
@@ -673,10 +701,12 @@ const EditorPage = () => {
               toggleNoteFlowGPT={toggleNoteFlowGPT}
               toggleCollaborationPanel={toggleCollaborationPanel}
               toggleMathAgent={toggleMathAgent}
+              toggleResearchAgent={toggleResearchAgent}
               showAIPanel={showAIPanel}
               showNoteFlowGPT={showNoteFlowGPT}
               showCollaborationPanel={showCollaborationPanel}
               showMathAgent={showMathAgent}
+              showResearchAgent={showResearchAgent}
               onSave={handleManualSave}
               saving={saving}
               lastSaved={lastSaved}
@@ -685,9 +715,20 @@ const EditorPage = () => {
             />
           )}
           
-          {/* Main editor component */}
-          <div className="editor-content-wrapper" style={{ display: showPreview ? 'none' : 'flex', width: '100%' }}>
-            <div className="editor-toolbar">
+          {/* Main editor component - Changed structure to eliminate gaps */}
+          <div className="editor-content-area" style={{
+            display: showPreview ? 'none' : 'block',
+            width: '100%',
+            marginTop: '-1px', /* Critical: pulls content up to eliminate gap */
+            position: 'relative'
+          }}>
+            <div className="editor-toolbar-container" style={{
+              borderTop: 'none',
+              borderBottom: '1px solid #e0e0e0',
+              backgroundColor: '#f5f7fa',
+              position: 'relative',
+              zIndex: 9
+            }}>
               <button
                 className="toolbar-button"
                 onClick={() => fileInputRef.current?.click()}
@@ -768,6 +809,15 @@ const EditorPage = () => {
             currentNote={note}
             isOpen={showMathAgent}
             onClose={toggleMathAgent}
+            onAddToNote={addToNote}
+          />
+        )}
+        
+        {showResearchAgent && (
+          <MathResearchAgent
+            isOpen={showResearchAgent}
+            currentNote={note}
+            onClose={toggleResearchAgent}
             onAddToNote={addToNote}
           />
         )}

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import SearchBar from "../search/SearchBar";
 import StyleChecker from "../common/StyleChecker";
-import MathResearchAgent from "../math/MathResearchAgent";
 import "../../styles/MathResearchAgent.css";
 
 const TopNavigation = ({ user }) => {
@@ -91,9 +90,6 @@ const TopNavigation = ({ user }) => {
       {/* Search Bar */}
       <SearchBar />
       
-      {/* Math Research Agent */}
-      <MathResearchAgent />
-
       <StyleChecker />
 
       {/* User Menu */}
