@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContent } from '../../services/lmStudioService';
 
 const MathResearchAgent = ({ isOpen, currentNote, onClose, onAddToNote }) => {
   const [query, setQuery] = useState('');
@@ -12,9 +12,6 @@ const MathResearchAgent = ({ isOpen, currentNote, onClose, onAddToNote }) => {
     
     setLoading(true);
     try {
-      const genAI = new GoogleGenerativeAI('AIzaSyDrjYMSPjKMhLBs6S0HqkpTTFoVOem4cME');
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
       let prompt = '';
       switch (searchMethod) {
         case 'papers':
@@ -33,14 +30,8 @@ const MathResearchAgent = ({ isOpen, currentNote, onClose, onAddToNote }) => {
           prompt = `Research and explain: ${query}`;
       }
 
-      const result = await model.generateContent({
-        contents: [{
-          parts: [{ text: prompt }]
-        }]
-      });
-      
-      const response = await result.response;
-      setResults(response.text());
+      const result = await generateContent(prompt);
+      setResults(result.content);
     } catch (error) {
       console.error('Error in math research:', error);
       setResults('Error occurred while processing your request.');
@@ -314,7 +305,7 @@ const MathResearchAgent = ({ isOpen, currentNote, onClose, onAddToNote }) => {
         fontSize: '12px'
       }}>
         <span>Math Research</span>
-        <span>Powered by Gemini AI</span>
+        <span>Powered by LM Studio</span>
       </div>
     </div>
   );

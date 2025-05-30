@@ -5,74 +5,53 @@ const summarizer = require("node-summarizer");
 const sentiment = require("sentiment");
 const config = require("../config/ai");
 
-// Initialize Gemini API configuration with fallback for missing API key
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDrjYMSPjKMhLBs6S0HqkpTTFoVOem4cME';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+// Initialize LM Studio API configuration
+const LM_STUDIO_BASE_URL = 'http://127.0.0.1:1234/v1';
+const DEFAULT_MODEL = 'local-model';
 
-// Create axios instance for Gemini API
-const geminiApi = axios.create({
-  baseURL: GEMINI_API_URL,
+// Create axios instance for LM Studio API
+const lmStudioApi = axios.create({
+  baseURL: LM_STUDIO_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Helper function to check if Gemini API is available
-const isGeminiAvailable = () => {
-  return !!GEMINI_API_KEY;
+// Helper function to check if LM Studio API is available
+const isLMStudioAvailable = async () => {
+  try {
+    await lmStudioApi.get('/models');
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
 
-// Helper function to generate content with Gemini
-const generateGeminiContent = async (prompt, temperature = 0.7, maxTokens = 1000) => {
+// Helper function to generate content with LM Studio
+const generateLMStudioContent = async (prompt, temperature = 0.7, maxTokens = 1000) => {
   try {
     // Add identity instruction to ensure AI identifies as NoteFlow+
     const identityInstruction = 'Your name is NoteFlow+. If asked about your name or identity, always respond that you are NoteFlow+.';
     const promptWithIdentity = `${identityInstruction}\n\n${prompt}`;
     
-    const response = await geminiApi.post(
-      `/${DEFAULT_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: promptWithIdentity
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature,
-          maxOutputTokens: maxTokens,
-          topP: 0.95,
-          topK: 40,
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          }
-        ]
-      }
-    );
+    const response = await lmStudioApi.post('/chat/completions', {
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: 'user',
+          content: promptWithIdentity
+        }
+      ],
+      temperature,
+      max_tokens: maxTokens,
+      top_p: 0.95,
+      stream: false
+    });
 
     // Extract the generated text from the response
-    return response.data.candidates[0].content.parts[0].text;
+    return response.data.choices[0].message.content;
   } catch (error) {
-    console.error("Gemini API error:", error.response?.data || error.message);
+    console.error("LM Studio API error:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -86,14 +65,14 @@ exports.checkGrammarAndSpelling = async (req, res) => {
       return res.status(400).json({ message: "Text is required" });
     }
 
-    // Check if Gemini is available
-    if (!isGeminiAvailable()) {
+    // Check if LM Studio is available
+    if (!isLMStudioAvailable()) {
       return res.status(503).json({ 
-        message: "AI service is currently unavailable. Please check the Gemini API key." 
+        message: "AI service is currently unavailable. Please check the LM Studio API." 
       });
     }
 
-    // Create prompt for Gemini
+    // Create prompt for LM Studio
     const prompt = `Please analyze the following text for ${
       checkGrammar ? "grammar, " : ""
     }${checkSpelling ? "spelling, " : ""}${checkStyle ? "style, " : ""}issues. 
@@ -108,7 +87,7 @@ exports.checkGrammarAndSpelling = async (req, res) => {
     Text to analyze:
     "${text}"`;
 
-    const generatedText = await generateGeminiContent(prompt, 0.3, config.geminiConfig.maxTokens);
+    const generatedText = await generateLMStudioContent(prompt, 0.3, config.lmStudioConfig.maxTokens);
 
     // Parse the response as JSON (assuming it's properly formatted)
     let suggestions;
@@ -118,7 +97,7 @@ exports.checkGrammarAndSpelling = async (req, res) => {
       const jsonString = generatedText.substring(jsonStart, jsonEnd);
       suggestions = JSON.parse(jsonString);
     } catch (parseError) {
-      console.error("Error parsing Gemini response:", parseError);
+      console.error("Error parsing LM Studio response:", parseError);
 
       // Fallback to returning the raw response
       return res.json({
@@ -143,8 +122,8 @@ exports.summarizeText = async (req, res) => {
       return res.status(400).json({ message: "Text is required" });
     }
 
-    // Check if Gemini is available for abstractive summarization
-    const geminiAvailable = isGeminiAvailable();
+    // Check if LM Studio is available for abstractive summarization
+    const lmStudioAvailable = isLMStudioAvailable();
 
     // Use node-summarizer for extractive summarization
     const extractiveSummary = new summarizer.SummarizerManager(
@@ -162,9 +141,9 @@ exports.summarizeText = async (req, res) => {
       originalLength: text.length,
     };
     
-    // Only attempt Gemini abstractive summarization if available
-    if (geminiAvailable) {
-      // Use Gemini for abstractive summarization
+    // Only attempt LM Studio abstractive summarization if available
+    if (lmStudioAvailable) {
+      // Use LM Studio for abstractive summarization
       const prompt = `Please create a concise summary of the following text in about ${Math.max(
         1,
         Math.min(5, Math.ceil(text.length / 500))
@@ -172,7 +151,7 @@ exports.summarizeText = async (req, res) => {
       
       "${text}"`;
 
-      const abstractiveSummary = await generateGeminiContent(prompt, 0.5, config.geminiConfig.maxTokens);
+      const abstractiveSummary = await generateLMStudioContent(prompt, 0.5, config.lmStudioConfig.maxTokens);
       
       // Add abstractive summary to result
       result.abstractive = abstractiveSummary;
@@ -180,7 +159,7 @@ exports.summarizeText = async (req, res) => {
       result.compressionRatio = abstractiveSummary.length / text.length;
     } else {
       // Add message about missing API key
-      result.message = "Abstractive summarization unavailable. Please check the Gemini API key.";
+      result.message = "Abstractive summarization unavailable. Please check the LM Studio API.";
     }
 
     res.json(result);
@@ -204,16 +183,16 @@ exports.generateContent = async (req, res) => {
       ? `Context: ${context}\n\nPrompt: ${prompt}`
       : prompt;
 
-    const content = await generateGeminiContent(
+    const content = await generateLMStudioContent(
       completePrompt, 
-      temperature || config.geminiConfig.temperature,
-      maxTokens || config.geminiConfig.maxTokens
+      temperature || config.lmStudioConfig.temperature,
+      maxTokens || config.lmStudioConfig.maxTokens
     );
 
     res.json({
       content,
       usage: {
-        promptTokens: 0, // Gemini doesn't provide token counts in this way
+        promptTokens: 0, // LM Studio doesn't provide token counts in this way
         completionTokens: 0,
         totalTokens: 0
       }
@@ -233,7 +212,7 @@ exports.researchTopic = async (req, res) => {
       return res.status(400).json({ message: "Topic is required" });
     }
 
-    // Create prompt for Gemini
+    // Create prompt for LM Studio
     const depthDescription =
       depth === "deep"
         ? "comprehensive and detailed"
@@ -255,13 +234,13 @@ exports.researchTopic = async (req, res) => {
     
     Format your response in well-organized markdown with sections and bullet points where appropriate.`;
 
-    const generatedText = await generateGeminiContent(prompt, 0.4, config.geminiConfig.maxTokens * 2);
+    const generatedText = await generateLMStudioContent(prompt, 0.4, config.lmStudioConfig.maxTokens * 2);
 
     res.json({
       research: generatedText,
       topic,
       usage: {
-        promptTokens: 0, // Gemini doesn't provide token counts in this way
+        promptTokens: 0, // LM Studio doesn't provide token counts in this way
         completionTokens: 0,
         totalTokens: 0
       }
@@ -367,9 +346,9 @@ exports.analyzeText = async (req, res) => {
         },
       });
     } catch (error) {
-      console.log("Error using local NLP libraries, falling back to Gemini:", error.message);
+      console.log("Error using local NLP libraries, falling back to LM Studio:", error.message);
       
-      // Fall back to using Gemini API for analysis
+      // Fall back to using LM Studio for analysis
       const prompt = `Analyze the following text and provide insights about:
       1. Main topics and themes
       2. Writing style and tone
@@ -382,7 +361,7 @@ exports.analyzeText = async (req, res) => {
       Text to analyze:
       "${text.substring(0, 4000)}${text.length > 4000 ? '...' : ''}"`;
 
-      const generatedText = await generateGeminiContent(prompt, 0.3, config.geminiConfig.maxTokens);
+      const generatedText = await generateLMStudioContent(prompt, 0.3, config.lmStudioConfig.maxTokens);
       
       return res.json({
         analysis: generatedText
@@ -438,7 +417,7 @@ exports.suggestStyleImprovements = async (req, res) => {
     Text to analyze:
     "${text}"`;
 
-    const generatedText = await generateGeminiContent(prompt, 0.4, config.geminiConfig.maxTokens);
+    const generatedText = await generateLMStudioContent(prompt, 0.4, config.lmStudioConfig.maxTokens);
 
     // Parse the response as JSON
     let suggestions;
@@ -448,7 +427,7 @@ exports.suggestStyleImprovements = async (req, res) => {
       const jsonString = generatedText.substring(jsonStart, jsonEnd);
       suggestions = JSON.parse(jsonString);
     } catch (parseError) {
-      console.error("Error parsing Gemini response:", parseError);
+      console.error("Error parsing LM Studio response:", parseError);
 
       // Fallback to returning the raw response
       return res.json({
@@ -491,7 +470,7 @@ exports.getTopicInsights = async (req, res) => {
       "relatedTopics": [{"name": "related topic", "relevance": "brief explanation of relationship"}]
     }`;
 
-    const generatedText = await generateGeminiContent(prompt, 0.7, config.geminiConfig.maxTokens);
+    const generatedText = await generateLMStudioContent(prompt, 0.7, config.lmStudioConfig.maxTokens);
 
     // Parse the response as JSON
     let insights;
@@ -501,7 +480,7 @@ exports.getTopicInsights = async (req, res) => {
       const jsonString = generatedText.substring(jsonStart, jsonEnd);
       insights = JSON.parse(jsonString);
     } catch (parseError) {
-      console.error("Error parsing Gemini response:", parseError);
+      console.error("Error parsing LM Studio response:", parseError);
 
       // Fallback to returning the raw response
       return res.json({

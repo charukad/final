@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { chatWithGemini } from "../../services/geminiService";
+import { chatWithLMStudio } from "../../services/lmStudioService";
 
 const AIChat = ({ content, onAddToNote }) => {
   const [messages, setMessages] = useState([
@@ -56,8 +56,8 @@ const AIChat = ({ content, onAddToNote }) => {
       // Get all messages for context
       const messageHistory = [...messages, userMessage];
       
-      // Send to Gemini API
-      const response = await chatWithGemini(messageHistory, content);
+      // Send to LM Studio API
+      const response = await chatWithLMStudio(messageHistory, content);
 
       // Add AI response to chat
       setMessages((prev) => [...prev, response]);

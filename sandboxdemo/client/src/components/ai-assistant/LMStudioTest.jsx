@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { generateContent } from '../../services/geminiService';
+import { generateContent } from '../../services/lmStudioService';
 
-const GeminiTest = () => {
+const LMStudioTest = () => {
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,9 +17,10 @@ const GeminiTest = () => {
     try {
       const result = await generateContent(prompt);
       setResponse(result.content);
+      setError('');
     } catch (err) {
-      console.error('Gemini API error:', err);
-      setError(err.message || 'Failed to get response from Gemini API');
+      console.error('LM Studio API error:', err);
+      setError(err.message || 'Failed to get response from LM Studio API');
     } finally {
       setLoading(false);
     }
@@ -33,9 +34,10 @@ const GeminiTest = () => {
     try {
       const result = await generateContent('What is your name?');
       setResponse(result.content);
+      setError('');
     } catch (err) {
-      console.error('Gemini API error:', err);
-      setError(err.message || 'Failed to get response from Gemini API');
+      console.error('LM Studio API error:', err);
+      setError(err.message || 'Failed to get response from LM Studio API');
     } finally {
       setLoading(false);
     }
@@ -43,7 +45,7 @@ const GeminiTest = () => {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h2>Gemini API Test</h2>
+      <h2>LM Studio API Test</h2>
       
       <div style={{ marginBottom: '20px' }}>
         <button 
@@ -114,7 +116,7 @@ const GeminiTest = () => {
       
       {response && (
         <div style={{ marginTop: '30px' }}>
-          <h3>Gemini Response:</h3>
+          <h3>LM Studio Response:</h3>
           <div style={{ 
             backgroundColor: '#f8f9fa', 
             padding: '15px',
@@ -130,4 +132,4 @@ const GeminiTest = () => {
   );
 };
 
-export default GeminiTest; 
+export default LMStudioTest; 

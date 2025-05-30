@@ -372,7 +372,7 @@ const EditorHeader = ({
           title="Toggle NoteFlow GPT"
           style={noteflowButtonStyle}
         >
-          <span style={iconStyles.gpt}>💬</span> GPT
+          <span style={iconStyles.gpt}>💬</span> Chart
         </button>
 
         <button 

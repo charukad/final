@@ -1,22 +1,20 @@
 import axios from 'axios';
 
-// This would be replaced with actual Bard API key in production
-const BARD_API_KEY = 'AIzaSyDrjYMSPjKMhLBs6S0HqkpTTFoVOem4cME'; // Using Gemini key for demo
-const BARD_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const DEFAULT_MODEL = 'gemini-2.0-flash'; // Using Gemini model as proxy since we're simulating Bard
+// LM Studio configuration for math assistance
+const LM_STUDIO_BASE_URL = 'http://127.0.0.1:1234/v1';
+const DEFAULT_MODEL = 'local-model';
 
-// Create axios instance for Bard API
-const bardApi = axios.create({
-  baseURL: BARD_API_URL,
+// Create axios instance for LM Studio API
+const lmStudioApi = axios.create({
+  baseURL: LM_STUDIO_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Generate math-specific content with Bard/Gemini
+// Generate math-specific content with LM Studio
 export const generateMathContent = async (prompt, context = null, options = {}) => {
   try {
-    const model = options.model || DEFAULT_MODEL;
     const temperature = options.temperature || 0.3; // Lower temperature for more precise math responses
 
     // Build the complete prompt with context and specialized math instructions
@@ -33,54 +31,33 @@ export const generateMathContent = async (prompt, context = null, options = {}) 
                       Use markdown format for equations when appropriate. 
                       Show all steps clearly when solving problems.`;
 
-    const response = await bardApi.post(
-      `/${model}:generateContent?key=${BARD_API_KEY}`,
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: completePrompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature,
-          maxOutputTokens: options.maxTokens || 1500, // Allow more tokens for detailed math explanations
-          topP: options.topP || 0.95,
-          topK: options.topK || 40,
+    const response = await lmStudioApi.post('/chat/completions', {
+      model: options.model || DEFAULT_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a specialized math assistant. Format mathematical expressions using proper notation and show all steps clearly.'
         },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          }
-        ]
-      }
-    );
+        {
+          role: 'user',
+          content: completePrompt
+        }
+      ],
+      temperature,
+      max_tokens: options.maxTokens || 1500, // Allow more tokens for detailed math explanations
+      top_p: options.topP || 0.95,
+      stream: false
+    });
 
     // Extract the generated text from the response
-    const result = response.data.candidates[0].content.parts[0].text;
+    const result = response.data.choices[0].message.content;
     
     return {
       content: result,
       usage: {
-        promptTokens: 0, // API doesn't provide token counts in this way
-        completionTokens: 0,
-        totalTokens: 0
+        promptTokens: response.data.usage?.prompt_tokens || 0,
+        completionTokens: response.data.usage?.completion_tokens || 0,
+        totalTokens: response.data.usage?.total_tokens || 0
       }
     };
   } catch (error) {

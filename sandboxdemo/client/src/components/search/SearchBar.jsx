@@ -147,8 +147,8 @@ const SearchBar = () => {
           onChange={handleInputChange}
           onFocus={() => setShowSuggestions(true)}
         />
-        <button type="submit" className="search-button">
-          🔍
+        <button type="submit" className="search-button" style={{ padding: '1px 1px' }}>
+          <span style={{ fontSize: '12px' }}>🔍</span>
         </button>
       </form>
 

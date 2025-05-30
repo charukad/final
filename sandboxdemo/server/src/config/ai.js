@@ -1,9 +1,9 @@
 require("dotenv").config();
 
-// Gemini configuration
-const geminiConfig = {
-  apiKey: process.env.GEMINI_API_KEY || 'AIzaSyDrjYMSPjKMhLBs6S0HqkpTTFoVOem4cME',
-  defaultModel: "gemini-2.0-flash",
+// LM Studio configuration
+const lmStudioConfig = {
+  baseURL: process.env.LM_STUDIO_URL || 'http://127.0.0.1:1234/v1',
+  defaultModel: "local-model",
   temperature: 0.7,
   maxTokens: 1000,
 };
@@ -56,7 +56,7 @@ const rateLimits = {
 };
 
 module.exports = {
-  geminiConfig,
+  lmStudioConfig,
   nlpConfig,
   summaryConfig,
   grammarConfig,

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import SearchBar from "../search/SearchBar";
-import StyleChecker from "../common/StyleChecker";
 import "../../styles/MathResearchAgent.css";
 
 const TopNavigation = ({ user }) => {
@@ -89,8 +88,6 @@ const TopNavigation = ({ user }) => {
     <div className="top-navigation" style={navStyle}>
       {/* Search Bar */}
       <SearchBar />
-      
-      <StyleChecker />
 
       {/* User Menu */}
       <div className="user-menu-container">

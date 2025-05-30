@@ -17,10 +17,10 @@ import SearchResultsPage from "./pages/SearchResultsPage";
 import CloudinaryTestPage from './pages/CloudinaryTestPage';
 
 // Test components
-import GeminiTest from "./components/ai-assistant/GeminiTest";
 import Base64Example from "./components/examples/Base64Example";
 import CloudinaryExample from "./components/examples/CloudinaryExample";
 import AdvancedCloudinaryExample from "./components/examples/AdvancedCloudinaryExample";
+import LMStudioTest from "./components/ai-assistant/LMStudioTest";
 
 // Components and styles
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -117,9 +117,6 @@ const App = () => {
           <Route key="forgot-password" path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route key="reset-password" path="/reset-password/:token" element={<ResetPasswordPage />} />
           
-          {/* Test route for Gemini API */}
-          <Route key="gemini-test" path="/gemini-test" element={<GeminiTest />} />
-          
           {/* Test route for Base64 Image Example */}
           <Route key="image-example" path="/image-example" element={<Base64Example />} />
           
@@ -167,6 +164,9 @@ const App = () => {
               <CloudinaryTestPage />
             </ProtectedRoute>
           } />
+          
+          {/* Test route for LM Studio API */}
+          <Route key="lmstudio-test" path="/lmstudio-test" element={<LMStudioTest />} />
           
           {/* Fallback route for any other path */}
           <Route key="fallback" path="*" element={<Navigate to="/" />} />
